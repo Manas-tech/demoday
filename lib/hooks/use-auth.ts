@@ -29,68 +29,115 @@ export default function useAuth() {
 
     let mounted = true;
 
-    const initAuth = async () => {
-      // Get Supabase client directly (will be null if not on client-side or not configured)
-      const client = getSupabaseClient();
-      
-      console.log('useAuth init - useSupabase:', useSupabase, 'client:', !!client);
-
-      if (useSupabase && client) {
-        try {
-          // Get current session
-          const { data: { session }, error } = await client.auth.getSession();
-          if (error) {
-            console.error('Error getting session:', error);
-            if (mounted) setLoading(false);
-            return;
-          }
-          
-          console.log('useAuth init - Session:', session ? 'exists' : 'none', session?.user?.email);
-          
-          if (session?.user && mounted) {
-            // Get user profile with role
-            const profile = await getUserProfile(session.user.id);
-            console.log('useAuth init - Profile:', profile);
-            if (profile) {
-              const userRole = (profile as any).role || 'user';
-              console.log('useAuth init - Setting user with role:', userRole);
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                name: profile.name || undefined,
-                role: userRole
-              });
-            } else {
-              console.log('useAuth init - No profile found, defaulting to user');
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                role: 'user'
-              });
-            }
-          } else if (mounted) {
-            console.log('useAuth init - No session, user not logged in');
-            setUser(null);
-          }
-        } catch (error) {
-          console.error('Error initializing auth:', error);
-        }
-      } else if (!useSupabase) {
-        console.log('useAuth init - Supabase not configured');
-      } else {
-        console.log('useAuth init - Supabase client not available');
-      }
-      
-      // Always set loading to false, even if Supabase is not configured
+    // Set a timeout to ensure loading always resolves (max 5 seconds)
+    const timeoutId = setTimeout(() => {
       if (mounted) {
-        console.log('useAuth init - Setting loading to false');
+        console.warn('useAuth init - Timeout reached, forcing loading to false');
         setLoading(false);
+      }
+    }, 5000);
+
+    const initAuth = async () => {
+      try {
+        // Get Supabase client directly (will be null if not on client-side or not configured)
+        const client = getSupabaseClient();
+        
+        console.log('useAuth init - useSupabase:', useSupabase, 'client:', !!client, 'url:', supabaseUrl ? 'configured' : 'missing');
+
+        if (useSupabase && client) {
+          try {
+            // Get current session with timeout
+            const sessionPromise = client.auth.getSession();
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Session timeout')), 3000)
+            );
+            
+            const { data: { session }, error } = await Promise.race([
+              sessionPromise,
+              timeoutPromise
+            ]) as any;
+
+            if (error) {
+              console.error('Error getting session:', error);
+              if (mounted) {
+                clearTimeout(timeoutId);
+                setLoading(false);
+              }
+              return;
+            }
+            
+            console.log('useAuth init - Session:', session ? 'exists' : 'none', session?.user?.email);
+            
+            if (session?.user && mounted) {
+              try {
+                // Get user profile with role (with timeout)
+                const profilePromise = getUserProfile(session.user.id);
+                const profileTimeoutPromise = new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Profile timeout')), 2000)
+                );
+                
+                const profile = await Promise.race([
+                  profilePromise,
+                  profileTimeoutPromise
+                ]) as any;
+
+                console.log('useAuth init - Profile:', profile);
+                if (profile) {
+                  const userRole = (profile as any).role || 'user';
+                  console.log('useAuth init - Setting user with role:', userRole);
+                  setUser({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: profile.name || undefined,
+                    role: userRole
+                  });
+                } else {
+                  console.log('useAuth init - No profile found, defaulting to user');
+                  setUser({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    role: 'user'
+                  });
+                }
+              } catch (profileError) {
+                console.error('Error getting profile (using session only):', profileError);
+                // Still set user from session even if profile fails
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  role: 'user'
+                });
+              }
+            } else if (mounted) {
+              console.log('useAuth init - No session, user not logged in');
+              setUser(null);
+            }
+          } catch (error) {
+            console.error('Error initializing auth:', error);
+            // Continue to set loading false even on error
+          }
+        } else if (!useSupabase) {
+          console.log('useAuth init - Supabase not configured');
+        } else {
+          console.log('useAuth init - Supabase client not available');
+        }
+      } catch (error) {
+        console.error('Error in initAuth:', error);
+      } finally {
+        // Always set loading to false, even if Supabase is not configured
+        if (mounted) {
+          clearTimeout(timeoutId);
+          console.log('useAuth init - Setting loading to false');
+          setLoading(false);
+        }
       }
     };
 
     // Ensure loading is set to false even if initAuth fails or Supabase is not configured
-    initAuth().catch(() => {
+    initAuth().catch((error) => {
+      console.error('initAuth promise rejected:', error);
       if (mounted) {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     });
@@ -125,11 +172,13 @@ export default function useAuth() {
 
       return () => {
         mounted = false;
+        clearTimeout(timeoutId);
         subscription.unsubscribe();
       };
     } else {
       return () => {
         mounted = false;
+        clearTimeout(timeoutId);
       };
     }
   }, []);
