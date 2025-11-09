@@ -215,7 +215,8 @@ export default function useAuth() {
             }
           } catch (profileError) {
             // Only log if it's not a timeout (timeout is expected in some cases)
-            if (!profileError.message?.includes('timeout')) {
+            const errorMessage = profileError instanceof Error ? profileError.message : String(profileError);
+            if (!errorMessage.includes('timeout')) {
               console.error('Error getting profile in auth change (using session only):', profileError);
             }
             // Still set user from session even if profile fails
