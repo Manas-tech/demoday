@@ -76,6 +76,9 @@ export default function useAuth() {
             console.log('useAuth init - Session:', session ? 'exists' : 'none', session?.user?.email);
             
             if (session?.user && mounted) {
+              // Determine default role based on email (for admin users)
+              const defaultRole = (session.user.email === 'admin@demo.com' || session.user.email === 'testadmin@demo.com') ? 'admin' : 'user';
+              
               try {
                 // Get user profile with role (with longer timeout for production)
                 const profilePromise = getUserProfile(session.user.id);
@@ -90,7 +93,7 @@ export default function useAuth() {
 
                 console.log('useAuth init - Profile:', profile);
                 if (profile && mounted) {
-                  const userRole = (profile as any).role || 'user';
+                  const userRole = (profile as any).role || defaultRole;
                   console.log('useAuth init - Setting user with role:', userRole);
                   setUser({
                     id: session.user.id,
@@ -99,21 +102,23 @@ export default function useAuth() {
                     role: userRole
                   });
                 } else if (mounted) {
-                  console.log('useAuth init - No profile found, defaulting to user');
+                  console.log('useAuth init - No profile found, using default role:', defaultRole);
                   setUser({
                     id: session.user.id,
                     email: session.user.email || '',
-                    role: 'user'
+                    role: defaultRole
                   });
                 }
               } catch (profileError) {
                 console.error('Error getting profile (using session only):', profileError);
                 // Still set user from session even if profile fails
+                // Use default role based on email
                 if (mounted) {
+                  console.log('useAuth init - Profile fetch failed, using default role:', defaultRole);
                   setUser({
                     id: session.user.id,
                     email: session.user.email || '',
-                    role: 'user'
+                    role: defaultRole
                   });
                 }
               }
@@ -179,13 +184,19 @@ export default function useAuth() {
             return;
           }
           
-          // Skip if we already have this user
+          // Skip if we already have this user with correct role
           if (userRef.current && userRef.current.id === session.user.id) {
-            console.log('User already set with same ID, skipping profile fetch');
-            return;
+            // Only skip if we have a role set (not defaulting)
+            if (userRef.current.role && userRef.current.role !== 'user') {
+              console.log('User already set with same ID and role, skipping profile fetch');
+              return;
+            }
           }
           
           profileFetchInProgress = true;
+          
+          // Determine default role based on email (for admin users)
+          const defaultRole = (session.user.email === 'admin@demo.com' || session.user.email === 'testadmin@demo.com') ? 'admin' : 'user';
           
           try {
             // Get user profile with longer timeout for production
@@ -200,17 +211,21 @@ export default function useAuth() {
             ]) as any;
 
             if (profile && mounted) {
+              const userRole = (profile as any).role || defaultRole;
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
                 name: profile.name || undefined,
-                role: (profile as any).role || 'user'
+                role: userRole
               });
             } else if (mounted) {
+              // Use default role based on email, or preserve existing role if available
+              const existingRole = userRef.current?.role;
+              const finalRole = existingRole && existingRole !== 'user' ? existingRole : defaultRole;
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
-                role: 'user'
+                role: finalRole
               });
             }
           } catch (profileError) {
@@ -220,11 +235,14 @@ export default function useAuth() {
               console.error('Error getting profile in auth change (using session only):', profileError);
             }
             // Still set user from session even if profile fails
+            // Preserve existing role if available, otherwise use default based on email
             if (mounted) {
+              const existingRole = userRef.current?.role;
+              const finalRole = existingRole && existingRole !== 'user' ? existingRole : defaultRole;
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
-                role: 'user'
+                role: finalRole
               });
             }
           } finally {
