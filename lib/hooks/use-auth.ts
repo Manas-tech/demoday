@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getUserProfile } from '@lib/db-providers/supabase/auth';
 import { createUser } from '@lib/db-providers/supabase';
 import useRole, { UserRole } from './use-role';
