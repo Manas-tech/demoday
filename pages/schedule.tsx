@@ -1,11 +1,12 @@
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '@components/layout';
 import cn from 'classnames';
 import { BRAND_COLOR } from '@lib/constants';
 import useAuth from '@lib/hooks/use-auth';
+import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 interface ScheduleItem {
   time: string;
@@ -40,21 +41,45 @@ const scheduleItems: ScheduleItem[] = [
 export default function Schedule() {
   const router = useRouter();
   const { isLoggedIn, loading } = useAuth();
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    // Wait a bit after loading completes to allow user state to be set
-    if (!loading && !isLoggedIn) {
-      const timer = setTimeout(() => {
-        // Double-check after a short delay to avoid race conditions
-        if (!isLoggedIn) {
-          router.replace('/login');
+    const checkAuth = async () => {
+      // Wait for loading to complete
+      if (loading) return;
+      
+      // If user is logged in, we're good
+      if (isLoggedIn) {
+        setCheckingSession(false);
+        return;
+      }
+
+      // Check session directly as a fallback
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { data: { session } } = await client.auth.getSession();
+          if (session?.user) {
+            // Session exists, wait a bit for user state to be set
+            setTimeout(() => {
+              setCheckingSession(false);
+            }, 1000);
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking session:', error);
         }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
+      }
+
+      // No session found, redirect to login
+      setCheckingSession(false);
+      router.replace('/login');
+    };
+
+    checkAuth();
   }, [loading, isLoggedIn, router]);
 
-  if (loading) {
+  if (loading || checkingSession) {
     return (
       <Layout>
         <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
