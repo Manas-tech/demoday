@@ -600,7 +600,15 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
             .select('*')
             .order('name');
           
-          if (!error && data) {
+          if (error) {
+            console.error('Error fetching speakers:', error);
+            alert(`Error loading speakers: ${error.message}`);
+            // Fallback to static data
+            setData(speakers);
+            return;
+          }
+          
+          if (data) {
             setData(data.map((s: any) => ({
               name: s.name,
               slug: s.slug,
@@ -613,6 +621,8 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
               github: s.github || '',
               linkedin: s.linkedin || ''
             })));
+          } else {
+            setData([]);
           }
         } else if (activeTab === 'companies') {
           const { data: companies, error } = await supabase
@@ -623,7 +633,15 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
             `)
             .order('name');
           
-          if (!error && companies) {
+          if (error) {
+            console.error('Error fetching companies:', error);
+            alert(`Error loading companies: ${error.message}`);
+            // Fallback to static data
+            setData(sponsors);
+            return;
+          }
+          
+          if (companies) {
             setData(companies.map((c: any) => ({
               name: c.name,
               slug: c.slug,
@@ -643,12 +661,28 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
               })),
               founders: c.founders
             })));
+          } else {
+            setData([]);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading data:', error);
+        alert(`Error loading data: ${error?.message || 'Unknown error'}`);
+        // Fallback to static data
+        switch (activeTab) {
+          case 'speakers':
+            setData(speakers);
+            break;
+          case 'event-schedule':
+            setData(stages);
+            break;
+          case 'companies':
+            setData(sponsors);
+            break;
+        }
       }
     } else {
+      // No Supabase client, use static data
       switch (activeTab) {
         case 'speakers':
           setData(speakers);
