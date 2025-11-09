@@ -47,10 +47,10 @@ export default function useAuth() {
 
         if (useSupabase && client) {
           try {
-            // Get current session with timeout
+            // Get current session with longer timeout for production
             const sessionPromise = client.auth.getSession();
             const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Session timeout')), 3000)
+              setTimeout(() => reject(new Error('Session timeout')), 10000)
             );
             
             const { data: { session }, error } = await Promise.race([
@@ -150,16 +150,42 @@ export default function useAuth() {
         console.log('Auth state changed:', event, session?.user?.email);
         if (!mounted) return;
         
+        // If we get a session from auth state change, set loading to false immediately
+        if (mounted && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT')) {
+          if (timeoutId) clearTimeout(timeoutId);
+          setLoading(false);
+        }
+        
         if (session?.user) {
-          const profile = await getUserProfile(session.user.id);
-          if (profile) {
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              name: profile.name || undefined,
-              role: (profile as any).role || 'user'
-            });
-          } else {
+          try {
+            // Get user profile with timeout
+            const profilePromise = getUserProfile(session.user.id);
+            const profileTimeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Profile timeout')), 3000)
+            );
+            
+            const profile = await Promise.race([
+              profilePromise,
+              profileTimeoutPromise
+            ]) as any;
+
+            if (profile) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                name: profile.name || undefined,
+                role: (profile as any).role || 'user'
+              });
+            } else {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                role: 'user'
+              });
+            }
+          } catch (profileError) {
+            console.error('Error getting profile in auth change (using session only):', profileError);
+            // Still set user from session even if profile fails
             setUser({
               id: session.user.id,
               email: session.user.email || '',
