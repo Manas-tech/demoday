@@ -223,6 +223,8 @@ export default function LoginPage() {
           User: user@demo.com / user123
           <br />
           Admin: admin@demo.com / admin123
+          <br />
+          Test Admin: testadmin / admin123
         </div>
 
         <p
