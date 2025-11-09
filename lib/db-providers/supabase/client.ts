@@ -15,18 +15,26 @@ export function getSupabaseClient(): SupabaseClient | null {
     return supabaseClient;
   }
 
-  // Create new client only once
+  // Only create client on client-side to ensure proper session storage
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  // Create new client only once with proper storage configuration
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storageKey: 'sb-auth-token',
+      flowType: 'pkce',
     },
   });
 
   return supabaseClient;
 }
 
-// Export a default instance for convenience
-export const supabase = getSupabaseClient();
+// Lazy initialization - only create when accessed on client-side
+export const supabase = typeof window !== 'undefined' ? getSupabaseClient() : null;
 

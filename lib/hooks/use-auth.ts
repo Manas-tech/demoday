@@ -20,11 +20,23 @@ export default function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     const initAuth = async () => {
-      if (useSupabase) {
+      if (useSupabase && supabase) {
         try {
           // Get current session
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error('Error getting session:', error);
+            setLoading(false);
+            return;
+          }
+          
           if (session?.user) {
             // Get user profile with role
             const profile = await getUserProfile(session.user.id);
@@ -57,8 +69,9 @@ export default function useAuth() {
     initAuth();
 
     // Listen for auth changes
-    if (useSupabase) {
+    if (useSupabase && supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         if (session?.user) {
           const profile = await getUserProfile(session.user.id);
           if (profile) {

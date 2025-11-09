@@ -69,7 +69,8 @@ const createMockSupabase = () => {
 };
 
 // Use shared client singleton, fallback to mock if not configured
-export const supabase = getSupabaseClient() || (createMockSupabase() as any);
+// Only create on client-side to ensure proper session storage
+export const supabase = (typeof window !== 'undefined' ? getSupabaseClient() : null) || (createMockSupabase() as any);
 
 const redirectTo = typeof window !== 'undefined'
   ? `${window.location.origin}/auth/callback`
