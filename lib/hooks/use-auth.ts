@@ -28,9 +28,10 @@ export default function useAuth() {
     }
 
     let mounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     // Set a timeout to ensure loading always resolves (max 5 seconds)
-    const timeoutId = setTimeout(() => {
+    timeoutId = setTimeout(() => {
       if (mounted) {
         console.warn('useAuth init - Timeout reached, forcing loading to false');
         setLoading(false);
@@ -60,7 +61,7 @@ export default function useAuth() {
             if (error) {
               console.error('Error getting session:', error);
               if (mounted) {
-                clearTimeout(timeoutId);
+                if (timeoutId) clearTimeout(timeoutId);
                 setLoading(false);
               }
               return;
@@ -126,7 +127,7 @@ export default function useAuth() {
       } finally {
         // Always set loading to false, even if Supabase is not configured
         if (mounted) {
-          clearTimeout(timeoutId);
+          if (timeoutId) clearTimeout(timeoutId);
           console.log('useAuth init - Setting loading to false');
           setLoading(false);
         }
@@ -137,7 +138,7 @@ export default function useAuth() {
     initAuth().catch((error) => {
       console.error('initAuth promise rejected:', error);
       if (mounted) {
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
         setLoading(false);
       }
     });
@@ -172,13 +173,13 @@ export default function useAuth() {
 
       return () => {
         mounted = false;
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
         subscription.unsubscribe();
       };
     } else {
       return () => {
         mounted = false;
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
       };
     }
   }, []);
