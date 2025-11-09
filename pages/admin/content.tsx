@@ -8,10 +8,7 @@ import useRole from '@lib/hooks/use-role';
 import useAuth from '@lib/hooks/use-auth';
 import { getAllSpeakers, getAllSponsors, getAllStages, getAllJobs } from '@lib/cms-api';
 import { Speaker, Sponsor, Stage, Job } from '@lib/types';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 type ContentType = 'speakers' | 'event-schedule' | 'companies';
 
@@ -577,12 +574,7 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Create authenticated Supabase client
-  const getSupabaseClient = () => {
-    if (!supabaseUrl || !supabaseAnonKey) return null;
-    const client = createClient(supabaseUrl, supabaseAnonKey);
-    return client;
-  };
+  // Get shared Supabase client singleton (already a singleton, no need for wrapper)
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {

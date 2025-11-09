@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { ConfUser } from '@lib/types';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from './client';
 
 // In-memory storage for when no database is configured
 const memoryStore: {
@@ -25,11 +25,7 @@ const memoryStore: {
   githubUsers: {}
 };
 
-const supabase =
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    : undefined;
+const supabase = getSupabaseClient() || undefined;
 
 export async function getUserByUsername(username: string): Promise<ConfUser> {
   if (!supabase) {

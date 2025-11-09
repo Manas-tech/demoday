@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { ConfUser } from '@lib/types';
+import { getSupabaseClient } from './client';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -68,15 +68,8 @@ const createMockSupabase = () => {
   };
 };
 
-export const supabase = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
-    })
-  : (createMockSupabase() as any);
+// Use shared client singleton, fallback to mock if not configured
+export const supabase = getSupabaseClient() || (createMockSupabase() as any);
 
 const redirectTo = typeof window !== 'undefined'
   ? `${window.location.origin}/auth/callback`

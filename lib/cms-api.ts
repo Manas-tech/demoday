@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 import { Job, Sponsor, Stage, Speaker } from '@lib/types';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 import fs from 'fs';
 import path from 'path';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+const supabase = getSupabaseClient();
 
 // Fallback to JSON files if Supabase is not configured
 const dataDir = path.join(process.cwd(), 'data');
