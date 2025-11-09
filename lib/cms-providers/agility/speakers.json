@@ -1,0 +1,52 @@
+{
+  "speakers": [
+    {
+      "name": "Amir Khan",
+      "title": "Managing Partner",
+      "bio": "Managing Partner at MARL Accelerator",
+      "slug": "amir-khan",
+      "twitter": "",
+      "github": "",
+      "company": "MARL Accelerator",
+      "image": {
+        "url": "https://marlvc.com/wp-content/uploads/2024/12/tm_1.avif"
+      },
+      "imageSquare": {
+        "url": "https://marlvc.com/wp-content/uploads/2024/12/tm_1.avif"
+      },
+      "linkedin": "https://www.linkedin.com/in/amirkhan177/"
+    },
+    {
+      "name": "Prakash Goswami",
+      "title": "Managing Partner",
+      "bio": "Managing Partner at MARL Accelerator",
+      "slug": "prakash-goswami",
+      "twitter": "",
+      "github": "",
+      "company": "MARL Accelerator",
+      "image": {
+        "url": "https://marlvc.com/wp-content/uploads/2024/12/tm_2.avif"
+      },
+      "imageSquare": {
+        "url": "https://marlvc.com/wp-content/uploads/2024/12/tm_2.avif"
+      },
+      "linkedin": "https://www.linkedin.com/in/pgoswami/"
+    },
+    {
+      "name": "Daniela Lugo",
+      "title": "Community Manager",
+      "bio": "Community Manager at MARL Accelerator",
+      "slug": "daniela-lugo",
+      "twitter": "",
+      "github": "",
+      "company": "MARL Accelerator",
+      "image": {
+        "url": "https://marlvc.com/wp-content/uploads/2024/12/2312342.jpg"
+      },
+      "imageSquare": {
+        "url": "https://marlvc.com/wp-content/uploads/2024/12/2312342.jpg"
+      },
+      "linkedin": "https://www.linkedin.com/in/daniela-lugo-iturriza-6073b9152"
+    }
+  ]
+} 
