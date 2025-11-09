@@ -53,7 +53,7 @@ export default function Page({ meta, children, fullViewport = false }: Props) {
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/ico" sizes="32x32" href="/favicon.ico" />
         <link rel="icon" type="image/ico" sizes="16x16" href="/favicon.ico" />
-        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="manifest" href="/api/manifest" />
         <link rel="shortcut icon" href="/favicon.ico" />
         <link
           rel="preload"
