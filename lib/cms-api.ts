@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 import { Job, Sponsor, Stage, Speaker } from '@lib/types';
-import { getSupabaseClient } from '@lib/db-providers/supabase/client';
+import { getSupabaseServerClient } from '@lib/db-providers/supabase/server';
 import fs from 'fs';
 import path from 'path';
 
-const supabase = getSupabaseClient();
+// Use server-side client for getStaticProps (works in Node.js environment)
+const supabase = getSupabaseServerClient();
 
 // Fallback to JSON files if Supabase is not configured
 const dataDir = path.join(process.cwd(), 'data');
