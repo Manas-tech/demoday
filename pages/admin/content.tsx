@@ -577,16 +577,59 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
   // Get shared Supabase client singleton (already a singleton, no need for wrapper)
 
   useEffect(() => {
-    if (!authLoading && !roleLoading) {
-      if (!user) {
-        router.replace('/login');
-        return;
-      }
-      if (!isAdmin) {
-        console.warn('Access denied: User is not admin. Role:', role, 'User:', user?.email);
-        router.replace('/');
-        return;
-      }
+    // Wait for loading to complete
+    if (authLoading || roleLoading) return;
+    
+    // If user is logged in and is admin, we're good
+    if (user && isAdmin) {
+      return;
+    }
+
+    // Check for hardcoded admin user
+    if (user?.id === 'hardcoded-admin-id' && user?.role === 'admin') {
+      return;
+    }
+
+    // If no user, check session directly as a fallback
+    if (!user) {
+      const checkSession = async () => {
+        const client = getSupabaseClient();
+        if (client) {
+          try {
+            const { data: { session } } = await client.auth.getSession();
+            if (session?.user) {
+              // Session exists, wait a bit for user state to be set
+              setTimeout(() => {
+                // Don't redirect - let the auth state update naturally
+                // The useEffect will re-run when user state changes
+              }, 2000);
+              return;
+            }
+          } catch (error) {
+            console.error('Error checking session:', error);
+          }
+        }
+        // No session found, redirect to login after delay
+        const timer = setTimeout(() => {
+          router.replace('/login');
+        }, 1000);
+        return () => clearTimeout(timer);
+      };
+      
+      checkSession();
+      return;
+    }
+
+    // User exists but not admin - wait a bit before redirecting
+    if (user && !isAdmin) {
+      const timer = setTimeout(() => {
+        // Double-check before redirecting
+        if (!isAdmin) {
+          console.warn('Access denied: User is not admin. Role:', role, 'User:', user?.email);
+          router.replace('/');
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [authLoading, roleLoading, user, isAdmin, role, router]);
 

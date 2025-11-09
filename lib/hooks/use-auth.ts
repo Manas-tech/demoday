@@ -249,6 +249,21 @@ export default function useAuth() {
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    // Hardcoded admin user (works even without Supabase)
+    // Accept both 'testadmin' and 'testadmin@demo.com' as email
+    if ((email === 'testadmin' || email === 'testadmin@demo.com') && password === 'admin123') {
+      const hardcodedAdmin: User = {
+        id: 'hardcoded-admin-id',
+        email: 'testadmin@demo.com',
+        name: 'Test Admin',
+        role: 'admin'
+      };
+      setUser(hardcodedAdmin);
+      setLoading(false);
+      window.dispatchEvent(new Event('auth-change'));
+      return { success: true };
+    }
+
     if (useSupabase) {
       const client = getSupabaseClient();
       if (!client) {
@@ -278,8 +293,8 @@ export default function useAuth() {
             }
           }
           
-          // Auto-set admin role for admin@demo.com if not set
-          if (email === 'admin@demo.com' && profile && (profile as any).role !== 'admin') {
+          // Auto-set admin role for admin@demo.com or testadmin if not set
+          if ((email === 'admin@demo.com' || email === 'testadmin@demo.com') && profile && (profile as any).role !== 'admin') {
             try {
               const updateClient = getSupabaseClient();
               if (updateClient) {
