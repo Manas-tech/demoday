@@ -48,18 +48,20 @@ export async function getAllSpeakers(): Promise<Speaker[]> {
         return readJsonFile<Speaker>('speakers.json');
       }
       
-      return (data || []).map((s: any) => ({
-        name: s.name,
-        slug: s.slug,
-        title: s.title,
-        company: s.company,
-        bio: s.bio,
-        image: { url: s.image_url || '' },
-        imageSquare: { url: s.image_square_url || s.image_url || '' },
-        twitter: s.twitter || '',
-        github: s.github || '',
-        linkedin: s.linkedin || ''
-      }));
+      return (data || [])
+        .filter((s: any) => s.is_visible !== false) // Only return visible speakers
+        .map((s: any) => ({
+          name: s.name,
+          slug: s.slug,
+          title: s.title,
+          company: s.company,
+          bio: s.bio,
+          image: { url: s.image_url || '' },
+          imageSquare: { url: s.image_square_url || s.image_url || '' },
+          twitter: s.twitter || '',
+          github: s.github || '',
+          linkedin: s.linkedin || ''
+        }));
     } catch (error) {
       console.error('Error fetching speakers:', error);
       return readJsonFile<Speaker>('speakers.json');
@@ -89,25 +91,27 @@ export async function getAllSponsors(): Promise<Sponsor[]> {
         return readJsonFile<Sponsor>('sponsors.json');
       }
       
-      return (companies || []).map((c: any) => ({
-        name: c.name,
-        slug: c.slug,
-        description: c.description,
-        shortDescription: c.short_description,
-        website: c.website,
-        callToAction: c.call_to_action,
-        callToActionLink: c.call_to_action_link,
-        discord: c.discord,
-        tier: c.tier,
-        youtubeSlug: c.youtube_slug,
-        cardImage: { url: c.card_image_url || '' },
-        logo: { url: c.logo_url || c.card_image_url || '' },
-        links: (c.company_links || []).map((link: any) => ({
-          text: link.text,
-          url: link.url
-        })),
-        founders: c.founders
-      }));
+      return (companies || [])
+        .filter((c: any) => c.is_visible !== false) // Only return visible companies
+        .map((c: any) => ({
+          name: c.name,
+          slug: c.slug,
+          description: c.description,
+          shortDescription: c.short_description,
+          website: c.website,
+          callToAction: c.call_to_action,
+          callToActionLink: c.call_to_action_link,
+          discord: c.discord,
+          tier: c.tier,
+          youtubeSlug: c.youtube_slug,
+          cardImage: { url: c.card_image_url || '' },
+          logo: { url: c.logo_url || c.card_image_url || '' },
+          links: (c.company_links || []).map((link: any) => ({
+            text: link.text,
+            url: link.url
+          })),
+          founders: c.founders
+        }));
     } catch (error) {
       console.error('Error fetching companies:', error);
       return readJsonFile<Sponsor>('sponsors.json');
@@ -118,4 +122,39 @@ export async function getAllSponsors(): Promise<Sponsor[]> {
 
 export async function getAllJobs(): Promise<Job[]> {
   return readJsonFile<Job>('jobs.json');
+}
+
+export async function getExpoPageSettings(): Promise<{ hero_title: string; description: string }> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('page_settings')
+        .select('hero_title, description')
+        .eq('page_key', 'expo')
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching expo page settings:', error);
+        return {
+          hero_title: 'Cohort 11',
+          description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+        };
+      }
+      
+      if (data) {
+        return {
+          hero_title: data.hero_title || 'Cohort 11',
+          description: data.description || 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching expo page settings:', error);
+    }
+  }
+  
+  // Default values
+  return {
+    hero_title: 'Cohort 11',
+    description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+  };
 }

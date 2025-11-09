@@ -33,10 +33,12 @@ type Props = {
   speakers: Speaker[];
 };
 
-export default function Speakers({ speakers }: Props) {
+export default function Speakers({ speakers: initialSpeakers }: Props) {
   const router = useRouter();
   const { isLoggedIn, loading } = useAuth();
   const [checkingSession, setCheckingSession] = useState(true);
+  const [speakers, setSpeakers] = useState(initialSpeakers);
+  const [panelistsImageUrl, setPanelistsImageUrl] = useState('https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg');
 
   useEffect(() => {
     // If user is already logged in, skip session check
@@ -72,6 +74,93 @@ export default function Speakers({ speakers }: Props) {
     checkAuth();
   }, [loading, isLoggedIn, router]);
 
+  // Fetch speakers client-side to get latest updates
+  useEffect(() => {
+    const fetchSpeakers = async () => {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { data, error } = await client
+            .from('speakers')
+            .select('*')
+            .order('name');
+          
+          if (!error && data) {
+            const formattedSpeakers = data
+              .filter((s: any) => s.is_visible !== false) // Only show visible speakers
+              .map((s: any) => ({
+                name: s.name,
+                slug: s.slug,
+                title: s.title,
+                company: s.company,
+                bio: s.bio,
+                image: { url: s.image_url || '' },
+                imageSquare: { url: s.image_square_url || s.image_url || '' },
+                twitter: s.twitter || '',
+                github: s.github || '',
+                linkedin: s.linkedin || ''
+              }));
+            setSpeakers(formattedSpeakers);
+          }
+        } catch (error) {
+          console.error('Error fetching speakers:', error);
+        }
+      }
+    };
+
+    if (isLoggedIn && !loading) {
+      fetchSpeakers();
+      
+      // Listen for speakers updates
+      const handleSpeakersUpdate = () => {
+        fetchSpeakers();
+      };
+      
+      window.addEventListener('speakers-updated', handleSpeakersUpdate);
+      
+      return () => {
+        window.removeEventListener('speakers-updated', handleSpeakersUpdate);
+      };
+    }
+  }, [isLoggedIn, loading]);
+
+  // Fetch panelists image URL
+  useEffect(() => {
+    const fetchPanelistsImage = async () => {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { data, error } = await client
+            .from('page_settings')
+            .select('description')
+            .eq('page_key', 'speakers')
+            .maybeSingle();
+          
+          if (!error && data && data.description) {
+            setPanelistsImageUrl(data.description);
+          }
+        } catch (error) {
+          console.error('Error fetching panelists image:', error);
+        }
+      }
+    };
+
+    if (isLoggedIn && !loading) {
+      fetchPanelistsImage();
+      
+      // Listen for speakers settings updates
+      const handleSpeakersSettingsUpdate = () => {
+        fetchPanelistsImage();
+      };
+      
+      window.addEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
+      
+      return () => {
+        window.removeEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
+      };
+    }
+  }, [isLoggedIn, loading]);
+
   const meta = {
     title: `Speakers - ${BRAND_NAME} Panelists`,
     description: META_DESCRIPTION
@@ -101,13 +190,15 @@ export default function Speakers({ speakers }: Props) {
           //   'Our featured panel, "The Future of Business with Agentic AI", will examine how agentic AI is reshaping industries and business models. It will be moderated by Rachna Dayal, Founder & Managing Partner at Sugati Ventures, an experienced venture capitalist focused on HealthTech and AI.'
           // }
         />
-        <Image
-          src="https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg"
-          alt="Panelits Image"
-          width={1000}
-          height={1000}
-          style={{ width: '100%', height: 'auto' }}
-        />
+        {panelistsImageUrl && (
+          <Image
+            src={panelistsImageUrl}
+            alt="Panelists Image"
+            width={1000}
+            height={1000}
+            style={{ width: '100%', height: 'auto' }}
+          />
+        )}
         <SpeakersGrid speakers={speakers} />
       </Layout>
     </Page>

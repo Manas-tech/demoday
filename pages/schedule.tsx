@@ -14,34 +14,11 @@ interface ScheduleItem {
   description?: string;
 }
 
-const scheduleItems: ScheduleItem[] = [
-  {
-    time: '1:00 PM',
-    title: 'Welcome & Agenda Overview'
-  },
-  {
-    time: '1:05 PM',
-    title: 'Intro to MARL'
-  },
-  {
-    time: '1:10 PM',
-    title: 'Startup Pitches',
-    description: '13 startups, ~5 minutes each'
-  },
-  {
-    time: '2:20 PM',
-    title: 'Panel Discussion: The Future of Business with Agentic AI'
-  },
-  {
-    time: '2:55 PM',
-    title: 'Closing Remarks'
-  }
-];
-
 export default function Schedule() {
   const router = useRouter();
   const { isLoggedIn, loading } = useAuth();
   const [checkingSession, setCheckingSession] = useState(true);
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
 
   useEffect(() => {
     // If user is already logged in, skip session check
@@ -76,6 +53,48 @@ export default function Schedule() {
 
     checkAuth();
   }, [loading, isLoggedIn, router]);
+
+  // Fetch schedule items client-side to get latest updates
+  useEffect(() => {
+    const fetchScheduleItems = async () => {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { data, error } = await client
+            .from('schedule_items')
+            .select('*')
+            .eq('is_visible', true)
+            .order('display_order', { ascending: true });
+          
+          if (!error && data) {
+            const formattedItems = data.map((item: any) => ({
+              time: item.time,
+              title: item.title,
+              description: item.description || undefined
+            }));
+            setScheduleItems(formattedItems);
+          }
+        } catch (error) {
+          console.error('Error fetching schedule items:', error);
+        }
+      }
+    };
+
+    if (isLoggedIn && !loading) {
+      fetchScheduleItems();
+      
+      // Listen for schedule updates
+      const handleScheduleUpdate = () => {
+        fetchScheduleItems();
+      };
+      
+      window.addEventListener('schedule-updated', handleScheduleUpdate);
+      
+      return () => {
+        window.removeEventListener('schedule-updated', handleScheduleUpdate);
+      };
+    }
+  }, [isLoggedIn, loading]);
 
   if (loading || checkingSession) {
     return (

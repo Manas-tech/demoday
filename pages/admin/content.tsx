@@ -10,7 +10,7 @@ import { getAllSpeakers, getAllSponsors, getAllStages, getAllJobs } from '@lib/c
 import { Speaker, Sponsor, Stage, Job } from '@lib/types';
 import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
-type ContentType = 'speakers' | 'event-schedule' | 'companies';
+type ContentType = 'speakers' | 'event-schedule' | 'companies' | 'expo-settings' | 'speakers-settings';
 
 type Props = {
   speakers: Speaker[];
@@ -516,7 +516,186 @@ const CompanyForm = ({ data, onChange }: { data: any; onChange: (data: any) => v
   );
 };
 
-// Stage Form Component
+// Expo Settings Form Component
+const ExpoSettingsForm = ({ data, onChange }: { data: any; onChange: (data: any) => void }) => (
+  <div style={{ padding: '20px', background: '#fff', borderRadius: '8px' }}>
+    <FormInput
+      label="Hero Title"
+      value={data.hero_title || ''}
+      onChange={(val: string) => onChange({ ...data, hero_title: val })}
+      placeholder="Cohort 11"
+      required
+    />
+    <FormInput
+      label="Description"
+      value={data.description || ''}
+      onChange={(val: string) => onChange({ ...data, description: val })}
+      placeholder="Discover Cohort 11 of MARL Accelerator's Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams."
+      textarea
+      rows={5}
+      required
+    />
+  </div>
+);
+
+// Speakers Settings Form Component
+const SpeakersSettingsForm = ({ data, onChange }: { data: any; onChange: (data: any) => void }) => {
+  const [uploading, setUploading] = useState(false);
+  const supabase = getSupabaseClient();
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supabase) return;
+
+    setUploading(true);
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `panelists-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
+
+      // Try to upload to pitchdeck bucket
+      let uploadError;
+      let publicUrl;
+      
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('pitchdeck')
+        .upload(filePath, file, { upsert: true });
+
+      uploadError = uploadErr;
+
+      if (uploadError) {
+        // If bucket doesn't exist, try to create it or use alternative
+        if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
+          alert('Storage bucket "pitchdeck" not found. Please create it in Supabase Storage settings or run the SQL script: supabase/create-storage-bucket.sql\n\nAlternatively, you can paste an image URL directly.');
+          setUploading(false);
+          return;
+        }
+        alert(`Error uploading file: ${uploadError.message}`);
+        setUploading(false);
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('pitchdeck')
+        .getPublicUrl(filePath);
+
+      publicUrl = urlData?.publicUrl;
+
+      if (publicUrl) {
+        onChange({ ...data, panelists_image_url: publicUrl });
+        alert('Image uploaded successfully!');
+      } else {
+        alert('Image uploaded but could not get public URL. Please check Supabase Storage settings.');
+      }
+    } catch (error: any) {
+      alert(`Error uploading: ${error.message || 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px', background: '#fff', borderRadius: '8px' }}>
+      <div style={{ marginBottom: '16px', padding: '12px', background: '#e7f3ff', borderRadius: '8px', border: '1px solid #b3d9ff' }}>
+        <p style={{ margin: 0, fontSize: '14px', color: '#0066cc', fontWeight: 500 }}>
+          You can either upload an image or provide a URL. At least one is required.
+        </p>
+      </div>
+      
+      <div style={{ marginTop: '16px', padding: '16px', background: '#f8f9fa', borderRadius: '8px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>
+          Upload Image
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          disabled={uploading}
+          style={{
+            padding: '8px',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            width: '100%',
+            cursor: uploading ? 'not-allowed' : 'pointer'
+          }}
+        />
+        {uploading && <p style={{ marginTop: '8px', color: '#666', fontSize: '14px' }}>Uploading...</p>}
+      </div>
+
+      <div style={{ marginTop: '16px', padding: '16px', background: '#f8f9fa', borderRadius: '8px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>
+          Or Enter Image URL
+        </label>
+        <FormInput
+          label=""
+          value={data.panelists_image_url || ''}
+          onChange={(val: string) => onChange({ ...data, panelists_image_url: val })}
+          placeholder="https://example.com/image.jpg"
+        />
+      </div>
+
+      {data.panelists_image_url && (
+        <div style={{ marginTop: '16px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px', color: '#333' }}>
+            Preview
+          </label>
+          <img
+            src={data.panelists_image_url}
+            alt="Panelists preview"
+            style={{
+              maxWidth: '100%',
+              height: 'auto',
+              borderRadius: '8px',
+              border: '1px solid #ddd'
+            }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Schedule Item Form Component
+const ScheduleItemForm = ({ data, onChange }: { data: any; onChange: (data: any) => void }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+    <FormInput
+      label="Time"
+      value={data.time || ''}
+      onChange={(val: string) => onChange({ ...data, time: val })}
+      placeholder="1:00 PM"
+      required
+    />
+    <FormInput
+      label="Title"
+      value={data.title || ''}
+      onChange={(val: string) => onChange({ ...data, title: val })}
+      placeholder="Event Title"
+      required
+    />
+    <FormInput
+      label="Description"
+      value={data.description || ''}
+      onChange={(val: string) => onChange({ ...data, description: val })}
+      placeholder="Optional description"
+      textarea
+      rows={3}
+    />
+    <FormInput
+      label="Display Order"
+      value={data.display_order?.toString() || '0'}
+      onChange={(val: string) => onChange({ ...data, display_order: parseInt(val) || 0 })}
+      placeholder="0"
+      type="number"
+    />
+  </div>
+);
+
+// Stage Form Component (kept for backward compatibility)
 const StageForm = ({ data, onChange }: { data: any; onChange: (data: any) => void }) => (
   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
     <FormInput
@@ -662,7 +841,8 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
               imageSquare: { url: s.image_square_url || s.image_url || '' },
               twitter: s.twitter || '',
               github: s.github || '',
-              linkedin: s.linkedin || ''
+              linkedin: s.linkedin || '',
+              is_visible: s.is_visible !== false // Default to true if null
             })));
           } else {
             setData([]);
@@ -702,10 +882,90 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
                 text: link.text,
                 url: link.url
               })),
-              founders: c.founders
+              founders: c.founders,
+              is_visible: c.is_visible !== false // Default to true if null
             })));
           } else {
             setData([]);
+          }
+        } else if (activeTab === 'event-schedule') {
+          const { data: scheduleItems, error } = await supabase
+            .from('schedule_items')
+            .select('*')
+            .order('display_order', { ascending: true });
+          
+          if (error) {
+            console.error('Error fetching schedule items:', error);
+            alert(`Error loading schedule items: ${error.message}`);
+            setData([]);
+            return;
+          }
+          
+          if (scheduleItems) {
+            setData(scheduleItems.map((item: any) => ({
+              id: item.id,
+              time: item.time,
+              title: item.title,
+              description: item.description,
+              display_order: item.display_order || 0,
+              is_visible: item.is_visible !== false
+            })));
+          } else {
+            setData([]);
+          }
+        } else if (activeTab === 'speakers-settings') {
+          const { data: settings, error } = await supabase
+            .from('page_settings')
+            .select('*')
+            .eq('page_key', 'speakers')
+            .maybeSingle();
+          
+          if (error) {
+            console.error('Error fetching speakers settings:', error);
+            alert(`Error loading speakers settings: ${error.message}`);
+            // Set default values
+            setData([{
+              panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+            }]);
+            return;
+          }
+          
+          if (settings) {
+            setData([{
+              panelists_image_url: settings.description || 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+            }]);
+          } else {
+            // Default values if no settings exist
+            setData([{
+              panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+            }]);
+          }
+        } else if (activeTab === 'expo-settings') {
+          const { data: settings, error } = await supabase
+            .from('page_settings')
+            .select('*')
+            .eq('page_key', 'expo')
+            .maybeSingle();
+          
+          if (error) {
+            console.error('Error fetching expo settings:', error);
+            alert(`Error loading expo settings: ${error.message}`);
+            // Set default values
+            setData([{
+              hero_title: 'Cohort 11',
+              description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+            }]);
+            return;
+          }
+          
+          if (settings) {
+            setData([settings]);
+          } else {
+            // Default values if no settings exist
+            setData([{
+              hero_title: 'Cohort 11',
+              description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+            }]);
           }
         }
       } catch (error: any) {
@@ -717,10 +977,21 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
             setData(speakers);
             break;
           case 'event-schedule':
-            setData(stages);
+            setData([]);
             break;
           case 'companies':
             setData(sponsors);
+            break;
+          case 'speakers-settings':
+            setData([{
+              panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+            }]);
+            break;
+          case 'expo-settings':
+            setData([{
+              hero_title: 'Cohort 11',
+              description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+            }]);
             break;
         }
       }
@@ -736,13 +1007,37 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
         case 'companies':
           setData(sponsors);
           break;
+        case 'speakers-settings':
+          setData([{
+            panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+          }]);
+          break;
+        case 'expo-settings':
+          setData([{
+            hero_title: 'Cohort 11',
+            description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+          }]);
+          break;
       }
     }
   };
 
   useEffect(() => {
     loadData();
+    // For expo-settings and speakers-settings, automatically open edit mode when data loads
+    if ((activeTab === 'expo-settings' || activeTab === 'speakers-settings') && data.length > 0 && editingIndex === null) {
+      setEditingIndex(0);
+      setEditData(data[0]);
+    }
   }, [activeTab]);
+  
+  // Auto-edit when expo-settings or speakers-settings data loads
+  useEffect(() => {
+    if ((activeTab === 'expo-settings' || activeTab === 'speakers-settings') && data.length > 0 && editingIndex === null && !showAddForm) {
+      setEditingIndex(0);
+      setEditData(data[0]);
+    }
+  }, [data, activeTab, editingIndex, showAddForm]);
   
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -884,9 +1179,82 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
             }
           }
         }
+      } else if (activeTab === 'event-schedule') {
+        if (!editData.time || !editData.title) {
+          alert('Time and title are required fields');
+          setSaving(false);
+          return;
+        }
+        
+        const { error } = await supabase
+          .from('schedule_items')
+          .update({
+            time: editData.time,
+            title: editData.title,
+            description: editData.description || null,
+            display_order: editData.display_order || 0
+          })
+          .eq('id', data[editingIndex].id);
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+      } else if (activeTab === 'speakers-settings') {
+        if (!editData.panelists_image_url || editData.panelists_image_url.trim() === '') {
+          alert('Please either upload an image or provide an image URL. At least one is required!');
+          setSaving(false);
+          return;
+        }
+        
+        // Upsert speakers page settings (using description field for image URL)
+        const { error } = await supabase
+          .from('page_settings')
+          .upsert({
+            page_key: 'speakers',
+            hero_title: 'Speakers - MARL Accelerator',
+            description: editData.panelists_image_url
+          }, {
+            onConflict: 'page_key'
+          });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+      } else if (activeTab === 'expo-settings') {
+        // Upsert expo page settings
+        const { error } = await supabase
+          .from('page_settings')
+          .upsert({
+            page_key: 'expo',
+            hero_title: editData.hero_title || 'Cohort 11',
+            description: editData.description || ''
+          }, {
+            onConflict: 'page_key'
+          });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
       }
       
       await loadData();
+      
+      // Dispatch events to notify frontend pages to refresh
+      if (activeTab === 'expo-settings') {
+        window.dispatchEvent(new Event('expo-settings-updated'));
+      } else if (activeTab === 'speakers-settings') {
+        window.dispatchEvent(new Event('speakers-settings-updated'));
+      } else if (activeTab === 'speakers') {
+        window.dispatchEvent(new Event('speakers-updated'));
+      } else if (activeTab === 'companies') {
+        window.dispatchEvent(new Event('sponsors-updated'));
+      } else if (activeTab === 'event-schedule') {
+        window.dispatchEvent(new Event('schedule-updated'));
+      }
+      
       alert('Changes saved successfully!');
       setEditingIndex(null);
       setEditData(null);
@@ -921,28 +1289,30 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
         setSaving(false);
         return;
       }
-        if (activeTab === 'speakers') {
-          if (!editData.name || !editData.slug) {
-            alert('Name and slug are required fields');
-            setSaving(false);
-            return;
-          }
-          
-          const { error } = await supabase
-            .from('speakers')
-            .insert({
-              name: editData.name,
-              slug: editData.slug,
-              title: editData.title || '',
-              company: editData.company || '',
-              bio: editData.bio || '',
-              image_url: editData.image?.url || '',
-              image_square_url: editData.imageSquare?.url || editData.image?.url || '',
-              twitter: editData.twitter || '',
-              github: editData.github || '',
-              linkedin: editData.linkedin || ''
-            });
+      
+      if (activeTab === 'speakers') {
+        if (!editData.name || !editData.slug) {
+          alert('Name and slug are required fields');
+          setSaving(false);
+          return;
+        }
         
+        const { error } = await supabase
+          .from('speakers')
+          .insert({
+            name: editData.name,
+            slug: editData.slug,
+            title: editData.title || '',
+            company: editData.company || '',
+            bio: editData.bio || '',
+            image_url: editData.image?.url || '',
+            image_square_url: editData.imageSquare?.url || editData.image?.url || '',
+            twitter: editData.twitter || '',
+            github: editData.github || '',
+            linkedin: editData.linkedin || '',
+            is_visible: true // New items are visible by default
+          });
+      
         if (error) {
           console.error('Supabase error:', error);
           throw error;
@@ -967,7 +1337,8 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           youtube_slug: editData.youtubeSlug?.trim() || null,
           card_image_url: editData.cardImage?.url?.trim() || '',
           logo_url: editData.logo?.url?.trim() || '',
-          founders: editData.founders?.trim() || null
+          founders: editData.founders?.trim() || null,
+          is_visible: true // New items are visible by default
         };
         
         console.log('Inserting company:', companyData);
@@ -1010,9 +1381,58 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
             }
           }
         }
+      } else if (activeTab === 'event-schedule') {
+        if (!editData.time || !editData.title) {
+          alert('Time and title are required fields');
+          setSaving(false);
+          return;
+        }
+        
+        const { error } = await supabase
+          .from('schedule_items')
+          .insert({
+            time: editData.time,
+            title: editData.title,
+            description: editData.description || null,
+            display_order: editData.display_order || 0,
+            is_visible: true
+          });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+      } else if (activeTab === 'expo-settings') {
+        // Upsert expo page settings
+        const { error } = await supabase
+          .from('page_settings')
+          .upsert({
+            page_key: 'expo',
+            hero_title: editData.hero_title || 'Cohort 11',
+            description: editData.description || ''
+          }, {
+            onConflict: 'page_key'
+          });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
       }
       
       await loadData();
+      
+      // Dispatch events to notify frontend pages to refresh
+      if (activeTab === 'expo-settings') {
+        window.dispatchEvent(new Event('expo-settings-updated'));
+      } else if (activeTab === 'speakers') {
+        window.dispatchEvent(new Event('speakers-updated'));
+      } else if (activeTab === 'companies') {
+        window.dispatchEvent(new Event('sponsors-updated'));
+      } else if (activeTab === 'event-schedule') {
+        window.dispatchEvent(new Event('schedule-updated'));
+      }
+      
       setShowAddForm(false);
       setEditData(null);
       setSaving(false);
@@ -1032,6 +1452,52 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
     }
   };
 
+  const handleToggleVisibility = async (index: number) => {
+    const item = data[index];
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      alert('Database connection not available');
+      return;
+    }
+
+    try {
+      const newVisibility = !item.is_visible;
+      
+      if (activeTab === 'speakers') {
+        const { error } = await supabase
+          .from('speakers')
+          .update({ is_visible: newVisibility })
+          .eq('slug', item.slug);
+        
+        if (error) throw error;
+      } else if (activeTab === 'companies') {
+        const { error } = await supabase
+          .from('companies')
+          .update({ is_visible: newVisibility })
+          .eq('slug', item.slug);
+        
+        if (error) throw error;
+      }
+
+      // Update local state
+      const updatedData = [...data];
+      updatedData[index] = { ...updatedData[index], is_visible: newVisibility };
+      setData(updatedData);
+
+      // Dispatch events to notify frontend pages to refresh
+      if (activeTab === 'speakers') {
+        window.dispatchEvent(new Event('speakers-updated'));
+      } else if (activeTab === 'companies') {
+        window.dispatchEvent(new Event('sponsors-updated'));
+      }
+
+      alert(`Item ${newVisibility ? 'shown' : 'hidden'} successfully!`);
+    } catch (error: any) {
+      alert(`Error toggling visibility: ${error?.message || 'Unknown error'}`);
+      console.error('Error toggling visibility:', error);
+    }
+  };
+
   const handleDelete = async (index: number) => {
     if (confirm('Are you sure you want to delete this item?')) {
       try {
@@ -1043,6 +1509,13 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
               .from('speakers')
               .delete()
               .eq('slug', item.slug);
+            
+            if (error) throw error;
+          } else if (activeTab === 'event-schedule') {
+            const { error } = await supabase
+              .from('schedule_items')
+              .delete()
+              .eq('id', item.id);
             
             if (error) throw error;
           } else if (activeTab === 'companies') {
@@ -1069,6 +1542,16 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
         }
         
         await loadData();
+        
+        // Dispatch events to notify frontend pages to refresh
+        if (activeTab === 'speakers') {
+          window.dispatchEvent(new Event('speakers-updated'));
+        } else if (activeTab === 'companies') {
+          window.dispatchEvent(new Event('sponsors-updated'));
+        } else if (activeTab === 'event-schedule') {
+          window.dispatchEvent(new Event('schedule-updated'));
+        }
+        
         alert('Item deleted successfully!');
       } catch (error: any) {
         alert(`Error deleting item: ${error.message}`);
@@ -1094,15 +1577,11 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
         };
       case 'event-schedule':
         return {
-          name: '',
-          slug: '',
-          stream: '',
-          discord: '',
-          schedule: [],
-          isLive: false,
-          roomId: '',
-          stagePeers: [],
-          backstagePeers: []
+          time: '',
+          title: '',
+          description: '',
+          display_order: 0,
+          is_visible: true
         };
       case 'companies':
         return {
@@ -1121,6 +1600,15 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           shortDescription: null,
           founders: null
         };
+      case 'speakers-settings':
+        return {
+          panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+        };
+      case 'expo-settings':
+        return {
+          hero_title: 'Cohort 11',
+          description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+        };
       default:
         return {};
     }
@@ -1132,7 +1620,11 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
     } else if (activeTab === 'companies') {
       return <CompanyForm data={editData} onChange={setEditData} />;
     } else if (activeTab === 'event-schedule') {
-      return <StageForm data={editData} onChange={setEditData} />;
+      return <ScheduleItemForm data={editData} onChange={setEditData} />;
+    } else if (activeTab === 'speakers-settings') {
+      return <SpeakersSettingsForm data={editData} onChange={setEditData} />;
+    } else if (activeTab === 'expo-settings') {
+      return <ExpoSettingsForm data={editData} onChange={setEditData} />;
     }
     return null;
   };
@@ -1163,15 +1655,17 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
                 fontSize: '16px'
               }}
             >
-              + Add New
+              {activeTab !== 'expo-settings' && activeTab !== 'speakers-settings' && '+ Add New'}
             </button>
           </div>
 
           <div style={{ display: 'flex', gap: '0', background: '#f5f5f5', borderBottom: '2px solid #e0e0e0' }}>
             {([
               { key: 'speakers' as ContentType, label: 'Speakers', count: speakers.length },
+              { key: 'speakers-settings' as ContentType, label: 'Speakers Settings', count: 1 },
               { key: 'event-schedule' as ContentType, label: 'Event Schedule', count: stages.length },
-              { key: 'companies' as ContentType, label: 'Companies', count: sponsors.length }
+              { key: 'companies' as ContentType, label: 'Companies', count: sponsors.length },
+              { key: 'expo-settings' as ContentType, label: 'Expo Settings', count: 1 }
             ]).map(({ key, label, count }) => (
               <button
                 key={key}
@@ -1194,7 +1688,7 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           </div>
 
           <div style={{ flex: 1, overflow: 'auto', padding: '32px', background: '#fafafa' }}>
-            {showAddForm && (
+            {showAddForm && activeTab !== 'expo-settings' && (
               <div style={{ marginBottom: '24px', padding: '32px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                   <h3 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#333' }}>Add New {activeTab.slice(0, -1)}</h3>
@@ -1273,7 +1767,7 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
                   {editingIndex === index ? (
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#333' }}>Editing: {item.name || item.title || `Item ${index + 1}`}</h3>
+                        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#333' }}>Editing: {item.name || item.title || item.hero_title || `Item ${index + 1}`}</h3>
                         <button
                           onClick={() => {
                             setEditingIndex(null);
@@ -1334,41 +1828,75 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
                         <div>
                           <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#333' }}>
-                            {item.name || item.title || item.companyName || `Item ${index + 1}`}
+                            {item.name || item.title || item.companyName || item.hero_title || `Item ${index + 1}`}
                           </h3>
                           {item.slug && <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>Slug: {item.slug}</p>}
+                          {item.hero_title && <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>Hero Title: {item.hero_title}</p>}
+                          {item.description && <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>Description: {item.description.substring(0, 100)}...</p>}
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => handleEdit(index)}
-                            style={{
-                              padding: '8px 16px',
-                              background: '#FF7B00',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              fontWeight: 600
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(index)}
-                            style={{
-                              padding: '8px 16px',
-                              background: '#dc3545',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              fontWeight: 600
-                            }}
-                          >
-                            Delete
-                          </button>
+                        <div style={{ display: 'flex', gap: '8px', flexDirection: 'column', alignItems: 'flex-end' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={() => handleEdit(index)}
+                              style={{
+                                padding: '8px 16px',
+                                background: '#FF7B00',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 600
+                              }}
+                            >
+                              Edit
+                            </button>
+                            {(activeTab !== 'expo-settings' && activeTab !== 'speakers-settings') && (
+                              <button
+                                onClick={() => handleDelete(index)}
+                                style={{
+                                  padding: '8px 16px',
+                                  background: '#dc3545',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: 600
+                                }}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                          {(activeTab === 'speakers' || activeTab === 'companies') && (
+                            <button
+                              onClick={() => handleToggleVisibility(index)}
+                              style={{
+                                padding: '6px 12px',
+                                background: item.is_visible !== false ? '#6c757d' : '#28a745',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                marginTop: '8px'
+                              }}
+                            >
+                              {item.is_visible !== false ? 'Hide' : 'Show'}
+                            </button>
+                          )}
+                          {(activeTab === 'speakers' || activeTab === 'companies') && (
+                            <span style={{
+                              fontSize: '12px',
+                              color: item.is_visible !== false ? '#28a745' : '#dc3545',
+                              fontWeight: 600,
+                              marginTop: '4px'
+                            }}>
+                              {item.is_visible !== false ? '✓ Visible' : '✗ Hidden'}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div style={{ 

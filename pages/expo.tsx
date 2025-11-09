@@ -23,7 +23,7 @@ import SponsorsGrid from '@components/sponsors-grid';
 import Header from '@components/header';
 import Layout from '@components/layout';
 
-import { getAllSponsors } from '@lib/cms-api';
+import { getAllSponsors, getExpoPageSettings } from '@lib/cms-api';
 import { Sponsor } from '@lib/types';
 import { META_DESCRIPTION } from '@lib/constants';
 import useAuth from '@lib/hooks/use-auth';
@@ -31,12 +31,18 @@ import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 type Props = {
   sponsors: Sponsor[];
+  expoSettings: {
+    hero_title: string;
+    description: string;
+  };
 };
 
-export default function ExpoPage({ sponsors }: Props) {
+export default function ExpoPage({ sponsors: initialSponsors, expoSettings: initialExpoSettings }: Props) {
   const router = useRouter();
   const { isLoggedIn, loading } = useAuth();
   const [checkingSession, setCheckingSession] = useState(true);
+  const [expoSettings, setExpoSettings] = useState(initialExpoSettings);
+  const [sponsors, setSponsors] = useState(initialSponsors);
 
   useEffect(() => {
     // If user is already logged in, skip session check
@@ -72,6 +78,106 @@ export default function ExpoPage({ sponsors }: Props) {
     checkAuth();
   }, [loading, isLoggedIn, router]);
 
+  // Fetch expo settings client-side to get latest updates
+  useEffect(() => {
+    const fetchExpoSettings = async () => {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { data, error } = await client
+            .from('page_settings')
+            .select('hero_title, description')
+            .eq('page_key', 'expo')
+            .maybeSingle();
+          
+          if (!error && data) {
+            setExpoSettings({
+              hero_title: data.hero_title || 'Cohort 11',
+              description: data.description || initialExpoSettings.description
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching expo settings:', error);
+        }
+      }
+    };
+
+    if (isLoggedIn && !loading) {
+      fetchExpoSettings();
+      
+      // Listen for expo settings updates
+      const handleExpoSettingsUpdate = () => {
+        fetchExpoSettings();
+      };
+      
+      window.addEventListener('expo-settings-updated', handleExpoSettingsUpdate);
+      
+      return () => {
+        window.removeEventListener('expo-settings-updated', handleExpoSettingsUpdate);
+      };
+    }
+  }, [isLoggedIn, loading, initialExpoSettings]);
+
+  // Fetch sponsors client-side to get latest updates
+  useEffect(() => {
+    const fetchSponsors = async () => {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const { data: companies, error } = await client
+            .from('companies')
+            .select(`
+              *,
+              company_links (*)
+            `)
+            .order('name');
+          
+          if (!error && companies) {
+            const formattedSponsors = companies
+              .filter((c: any) => c.is_visible !== false) // Only show visible companies
+              .map((c: any) => ({
+                name: c.name,
+                slug: c.slug,
+                description: c.description,
+                shortDescription: c.short_description,
+                website: c.website,
+                callToAction: c.call_to_action,
+                callToActionLink: c.call_to_action_link,
+                discord: c.discord,
+                tier: c.tier,
+                youtubeSlug: c.youtube_slug,
+                cardImage: { url: c.card_image_url || '' },
+                logo: { url: c.logo_url || c.card_image_url || '' },
+                links: (c.company_links || []).map((link: any) => ({
+                  text: link.text,
+                  url: link.url
+                })),
+                founders: c.founders
+              }));
+            setSponsors(formattedSponsors);
+          }
+        } catch (error) {
+          console.error('Error fetching sponsors:', error);
+        }
+      }
+    };
+
+    if (isLoggedIn && !loading) {
+      fetchSponsors();
+      
+      // Listen for sponsors/companies updates
+      const handleSponsorsUpdate = () => {
+        fetchSponsors();
+      };
+      
+      window.addEventListener('sponsors-updated', handleSponsorsUpdate);
+      
+      return () => {
+        window.removeEventListener('sponsors-updated', handleSponsorsUpdate);
+      };
+    }
+  }, [isLoggedIn, loading]);
+
   const meta = {
     title: 'MARL Accelerator Demo Day',
     description: META_DESCRIPTION
@@ -94,7 +200,7 @@ export default function ExpoPage({ sponsors }: Props) {
   return (
     <Page meta={meta}>
       <Layout>
-        <Header hero="Cohort 11" description={meta.description} />
+        <Header hero={expoSettings.hero_title} description={expoSettings.description} />
         <SponsorsGrid sponsors={sponsors} />
       </Layout>
     </Page>
@@ -103,6 +209,7 @@ export default function ExpoPage({ sponsors }: Props) {
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
   const sponsors = await getAllSponsors();
+  const expoSettings = await getExpoPageSettings();
 
   // Sanitize each sponsor's data
   const sanitizedSponsors = (sponsors || []).map(sponsor => ({
@@ -128,7 +235,8 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
 
   return {
     props: {
-      sponsors: sanitizedSponsors
+      sponsors: sanitizedSponsors,
+      expoSettings
     },
     revalidate: 60
   };
