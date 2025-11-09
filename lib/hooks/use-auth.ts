@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { supabase, getUserProfile } from '@lib/db-providers/supabase/auth';
+import { getUserProfile } from '@lib/db-providers/supabase/auth';
 import { createUser } from '@lib/db-providers/supabase';
 import useRole, { UserRole } from './use-role';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 export type User = {
   id: string;
@@ -29,14 +30,10 @@ export default function useAuth() {
     let mounted = true;
 
     const initAuth = async () => {
-      // Wait a bit for Supabase client to initialize if needed
-      let client = supabase;
-      if (useSupabase && !client) {
-        // Retry getting client after a short delay
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const { getSupabaseClient } = await import('@lib/db-providers/supabase/client');
-        client = getSupabaseClient();
-      }
+      // Get Supabase client directly (will be null if not on client-side or not configured)
+      const client = getSupabaseClient();
+      
+      console.log('useAuth init - useSupabase:', useSupabase, 'client:', !!client);
 
       if (useSupabase && client) {
         try {
@@ -47,6 +44,8 @@ export default function useAuth() {
             if (mounted) setLoading(false);
             return;
           }
+          
+          console.log('useAuth init - Session:', session ? 'exists' : 'none', session?.user?.email);
           
           if (session?.user && mounted) {
             // Get user profile with role
@@ -69,14 +68,22 @@ export default function useAuth() {
                 role: 'user'
               });
             }
+          } else if (mounted) {
+            console.log('useAuth init - No session, user not logged in');
+            setUser(null);
           }
         } catch (error) {
           console.error('Error initializing auth:', error);
         }
+      } else if (!useSupabase) {
+        console.log('useAuth init - Supabase not configured');
+      } else {
+        console.log('useAuth init - Supabase client not available');
       }
       
       // Always set loading to false, even if Supabase is not configured
       if (mounted) {
+        console.log('useAuth init - Setting loading to false');
         setLoading(false);
       }
     };
@@ -89,8 +96,9 @@ export default function useAuth() {
     });
 
     // Listen for auth changes
-    if (useSupabase && supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+    const client = getSupabaseClient();
+    if (useSupabase && client) {
+      const { data: { subscription } } = client.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
         console.log('Auth state changed:', event, session?.user?.email);
         if (!mounted) return;
         
@@ -128,8 +136,12 @@ export default function useAuth() {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     if (useSupabase) {
+      const client = getSupabaseClient();
+      if (!client) {
+        return { success: false, error: 'Supabase client not initialized' };
+      }
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await client.auth.signInWithPassword({
           email,
           password
         });
@@ -155,11 +167,14 @@ export default function useAuth() {
           // Auto-set admin role for admin@demo.com if not set
           if (email === 'admin@demo.com' && profile && (profile as any).role !== 'admin') {
             try {
-              await supabase
-                .from('users')
-                .update({ role: 'admin' })
-                .eq('id', data.user.id);
-              profile = await getUserProfile(data.user.id);
+              const updateClient = getSupabaseClient();
+              if (updateClient) {
+                await updateClient
+                  .from('users')
+                  .update({ role: 'admin' })
+                  .eq('id', data.user.id);
+                profile = await getUserProfile(data.user.id);
+              }
             } catch (updateError) {
               console.error('Error updating admin role:', updateError);
             }
@@ -188,8 +203,12 @@ export default function useAuth() {
 
   const signup = async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {
     if (useSupabase) {
+      const client = getSupabaseClient();
+      if (!client) {
+        return { success: false, error: 'Supabase client not initialized' };
+      }
       try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await client.auth.signUp({
           email,
           password,
           options: {
@@ -243,7 +262,10 @@ export default function useAuth() {
 
   const logout = async () => {
     if (useSupabase) {
-      await supabase.auth.signOut();
+      const client = getSupabaseClient();
+      if (client) {
+        await client.auth.signOut();
+      }
     }
     setUser(null);
     window.dispatchEvent(new Event('auth-change'));
