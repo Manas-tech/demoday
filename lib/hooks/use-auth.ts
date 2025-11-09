@@ -26,18 +26,29 @@ export default function useAuth() {
       return;
     }
 
+    let mounted = true;
+
     const initAuth = async () => {
-      if (useSupabase && supabase) {
+      // Wait a bit for Supabase client to initialize if needed
+      let client = supabase;
+      if (useSupabase && !client) {
+        // Retry getting client after a short delay
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const { getSupabaseClient } = await import('@lib/db-providers/supabase/client');
+        client = getSupabaseClient();
+      }
+
+      if (useSupabase && client) {
         try {
           // Get current session
-          const { data: { session }, error } = await supabase.auth.getSession();
+          const { data: { session }, error } = await client.auth.getSession();
           if (error) {
             console.error('Error getting session:', error);
-            setLoading(false);
+            if (mounted) setLoading(false);
             return;
           }
           
-          if (session?.user) {
+          if (session?.user && mounted) {
             // Get user profile with role
             const profile = await getUserProfile(session.user.id);
             console.log('useAuth init - Profile:', profile);
@@ -63,15 +74,26 @@ export default function useAuth() {
           console.error('Error initializing auth:', error);
         }
       }
-      setLoading(false);
+      
+      // Always set loading to false, even if Supabase is not configured
+      if (mounted) {
+        setLoading(false);
+      }
     };
 
-    initAuth();
+    // Ensure loading is set to false even if initAuth fails or Supabase is not configured
+    initAuth().catch(() => {
+      if (mounted) {
+        setLoading(false);
+      }
+    });
 
     // Listen for auth changes
     if (useSupabase && supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
         console.log('Auth state changed:', event, session?.user?.email);
+        if (!mounted) return;
+        
         if (session?.user) {
           const profile = await getUserProfile(session.user.id);
           if (profile) {
@@ -94,7 +116,12 @@ export default function useAuth() {
       });
 
       return () => {
+        mounted = false;
         subscription.unsubscribe();
+      };
+    } else {
+      return () => {
+        mounted = false;
       };
     }
   }, []);
