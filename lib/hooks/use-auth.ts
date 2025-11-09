@@ -19,6 +19,12 @@ const useSupabase = !!(supabaseUrl && supabaseAnonKey);
 export default function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef<User | null>(null);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     // Only run on client-side
@@ -160,8 +166,8 @@ export default function useAuth() {
           setLoading(false);
         }
         
-        // Skip INITIAL_SESSION if we already have a user (prevents duplicate fetches)
-        if (event === 'INITIAL_SESSION' && user) {
+        // Skip INITIAL_SESSION if we already have a user with the same ID (prevents duplicate fetches)
+        if (event === 'INITIAL_SESSION' && userRef.current && userRef.current.id === session?.user?.id) {
           console.log('Auth state changed - INITIAL_SESSION but user already set, skipping');
           return;
         }
@@ -170,6 +176,12 @@ export default function useAuth() {
           // Prevent duplicate profile fetches
           if (profileFetchInProgress) {
             console.log('Profile fetch already in progress, skipping');
+            return;
+          }
+          
+          // Skip if we already have this user
+          if (userRef.current && userRef.current.id === session.user.id) {
+            console.log('User already set with same ID, skipping profile fetch');
             return;
           }
           
