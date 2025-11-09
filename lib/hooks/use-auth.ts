@@ -30,13 +30,13 @@ export default function useAuth() {
     let mounted = true;
     let timeoutId: NodeJS.Timeout | null = null;
 
-    // Set a timeout to ensure loading always resolves (max 5 seconds)
+    // Set a timeout to ensure loading always resolves (max 10 seconds for production)
     timeoutId = setTimeout(() => {
       if (mounted) {
         console.warn('useAuth init - Timeout reached, forcing loading to false');
         setLoading(false);
       }
-    }, 5000);
+    }, 10000);
 
     const initAuth = async () => {
       try {

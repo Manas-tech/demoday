@@ -148,12 +148,27 @@ export async function getUserProfile(userId: string): Promise<ConfUser | null> {
   if (!supabaseUrl || !supabaseAnonKey) {
     return memoryStore.profiles[userId] || null;
   }
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
+  
+  // Get client directly to ensure it's properly initialized
+  const client = typeof window !== 'undefined' ? getSupabaseClient() : null;
+  if (!client) {
+    return memoryStore.profiles[userId] || null;
+  }
+  
+  try {
+    const { data, error } = await client
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+    return data;
+  } catch (error) {
+    console.error('Exception fetching user profile:', error);
+    return null;
+  }
 } 
