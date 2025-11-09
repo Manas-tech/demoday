@@ -42,8 +42,15 @@ export default function Schedule() {
   const { isLoggedIn, loading } = useAuth();
 
   useEffect(() => {
+    // Wait a bit after loading completes to allow user state to be set
     if (!loading && !isLoggedIn) {
-      router.replace('/login');
+      const timer = setTimeout(() => {
+        // Double-check after a short delay to avoid race conditions
+        if (!isLoggedIn) {
+          router.replace('/login');
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [loading, isLoggedIn, router]);
 
