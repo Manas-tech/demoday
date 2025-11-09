@@ -71,10 +71,10 @@ export default function useAuth() {
             
             if (session?.user && mounted) {
               try {
-                // Get user profile with role (with timeout)
+                // Get user profile with role (with longer timeout for production)
                 const profilePromise = getUserProfile(session.user.id);
                 const profileTimeoutPromise = new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error('Profile timeout')), 2000)
+                  setTimeout(() => reject(new Error('Profile timeout')), 8000)
                 );
                 
                 const profile = await Promise.race([
@@ -83,7 +83,7 @@ export default function useAuth() {
                 ]) as any;
 
                 console.log('useAuth init - Profile:', profile);
-                if (profile) {
+                if (profile && mounted) {
                   const userRole = (profile as any).role || 'user';
                   console.log('useAuth init - Setting user with role:', userRole);
                   setUser({
@@ -92,7 +92,7 @@ export default function useAuth() {
                     name: profile.name || undefined,
                     role: userRole
                   });
-                } else {
+                } else if (mounted) {
                   console.log('useAuth init - No profile found, defaulting to user');
                   setUser({
                     id: session.user.id,
@@ -103,11 +103,13 @@ export default function useAuth() {
               } catch (profileError) {
                 console.error('Error getting profile (using session only):', profileError);
                 // Still set user from session even if profile fails
-                setUser({
-                  id: session.user.id,
-                  email: session.user.email || '',
-                  role: 'user'
-                });
+                if (mounted) {
+                  setUser({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    role: 'user'
+                  });
+                }
               }
             } else if (mounted) {
               console.log('useAuth init - No session, user not logged in');
@@ -158,10 +160,10 @@ export default function useAuth() {
         
         if (session?.user) {
           try {
-            // Get user profile with timeout
+            // Get user profile with longer timeout for production
             const profilePromise = getUserProfile(session.user.id);
             const profileTimeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Profile timeout')), 3000)
+              setTimeout(() => reject(new Error('Profile timeout')), 8000)
             );
             
             const profile = await Promise.race([
@@ -169,14 +171,14 @@ export default function useAuth() {
               profileTimeoutPromise
             ]) as any;
 
-            if (profile) {
+            if (profile && mounted) {
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
                 name: profile.name || undefined,
                 role: (profile as any).role || 'user'
               });
-            } else {
+            } else if (mounted) {
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
@@ -186,13 +188,15 @@ export default function useAuth() {
           } catch (profileError) {
             console.error('Error getting profile in auth change (using session only):', profileError);
             // Still set user from session even if profile fails
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              role: 'user'
-            });
+            if (mounted) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                role: 'user'
+              });
+            }
           }
-        } else {
+        } else if (mounted) {
           setUser(null);
         }
       });
