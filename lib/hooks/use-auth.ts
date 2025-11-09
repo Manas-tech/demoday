@@ -148,6 +148,8 @@ export default function useAuth() {
     // Listen for auth changes
     const client = getSupabaseClient();
     if (useSupabase && client) {
+      let profileFetchInProgress = false;
+      
       const { data: { subscription } } = client.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
         console.log('Auth state changed:', event, session?.user?.email);
         if (!mounted) return;
@@ -158,12 +160,26 @@ export default function useAuth() {
           setLoading(false);
         }
         
+        // Skip INITIAL_SESSION if we already have a user (prevents duplicate fetches)
+        if (event === 'INITIAL_SESSION' && user) {
+          console.log('Auth state changed - INITIAL_SESSION but user already set, skipping');
+          return;
+        }
+        
         if (session?.user) {
+          // Prevent duplicate profile fetches
+          if (profileFetchInProgress) {
+            console.log('Profile fetch already in progress, skipping');
+            return;
+          }
+          
+          profileFetchInProgress = true;
+          
           try {
             // Get user profile with longer timeout for production
             const profilePromise = getUserProfile(session.user.id);
             const profileTimeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Profile timeout')), 8000)
+              setTimeout(() => reject(new Error('Profile timeout')), 10000)
             );
             
             const profile = await Promise.race([
@@ -186,7 +202,10 @@ export default function useAuth() {
               });
             }
           } catch (profileError) {
-            console.error('Error getting profile in auth change (using session only):', profileError);
+            // Only log if it's not a timeout (timeout is expected in some cases)
+            if (!profileError.message?.includes('timeout')) {
+              console.error('Error getting profile in auth change (using session only):', profileError);
+            }
             // Still set user from session even if profile fails
             if (mounted) {
               setUser({
@@ -195,6 +214,8 @@ export default function useAuth() {
                 role: 'user'
               });
             }
+          } finally {
+            profileFetchInProgress = false;
           }
         } else if (mounted) {
           setUser(null);
