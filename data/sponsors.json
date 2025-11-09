@@ -1,0 +1,77 @@
+[
+  {
+    "name": "BLDX",
+    "slug": "bldx",
+    "description": "AI-powered construction SaaS platform that streamlines project scheduling, document management, and progress tracking. It connects daily reports to project schedules, provides real-time insights, automates administrative tasks like subcontractor reminders and material tracking, and uses an AI co-pilot to answer queries, suggest optimized schedules, and help teams make data-driven decisions to reduce delays, improve efficiency, and save costs.",
+    "shortDescription": "AI-powered construction SaaS that optimizes project scheduling, document management, and progress tracking.",
+    "website": "https://bldx.com",
+    "callToAction": "Website",
+    "callToActionLink": "https://bldx.com",
+    "discord": "sunny@bldx.com",
+    "tier": "Cohort 11",
+    "youtubeSlug": "dQw4w9WgXcQ",
+    "cardImage": {
+      "url": "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop"
+    },
+    "logo": {
+      "url": "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=200&h=200&fit=crop"
+    },
+    "links": [
+      {
+        "text": "One Pager",
+        "url": "https://example.com/bldx-onepager.pdf"
+      }
+    ],
+    "founders": "Sunny Mahajan"
+  },
+  {
+    "name": "CASY",
+    "slug": "casy",
+    "description": "Casy helps teams to get projects done without project manager. Our platform automates project coordination, task assignment, and progress tracking, enabling teams to collaborate effectively without the overhead of traditional project management roles.",
+    "shortDescription": "Casy helps teams to get projects done without project manager.",
+    "website": "https://casy.com",
+    "callToAction": "Website",
+    "callToActionLink": "https://casy.com",
+    "discord": "founder@casy.com",
+    "tier": "Cohort 11",
+    "youtubeSlug": "dQw4w9WgXcQ",
+    "cardImage": {
+      "url": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop"
+    },
+    "logo": {
+      "url": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=200&h=200&fit=crop"
+    },
+    "links": [
+      {
+        "text": "One Pager",
+        "url": "https://example.com/casy-onepager.pdf"
+      }
+    ],
+    "founders": "Founder Name"
+  },
+  {
+    "name": "DIGIPALZ™",
+    "slug": "digipalz",
+    "description": "Gamified cyber safety curriculum for ages 9-15. Digipalz makes learning about online safety engaging and fun through interactive games, challenges, and real-world scenarios. Our platform teaches children and teens how to protect themselves online while having fun.",
+    "shortDescription": "Gamified cyber safety curriculum for ages 9-15.",
+    "website": "https://digipalz.com",
+    "callToAction": "Website",
+    "callToActionLink": "https://digipalz.com",
+    "discord": "founder@digipalz.com",
+    "tier": "Cohort 11",
+    "youtubeSlug": "dQw4w9WgXcQ",
+    "cardImage": {
+      "url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop"
+    },
+    "logo": {
+      "url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&h=200&fit=crop"
+    },
+    "links": [
+      {
+        "text": "One Pager",
+        "url": "https://example.com/digipalz-onepager.pdf"
+      }
+    ],
+    "founders": "Founder Name"
+  }
+]

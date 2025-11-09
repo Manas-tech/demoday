@@ -1,0 +1,66 @@
+[
+  {
+    "name": "Rachna Dayal",
+    "slug": "rachna-dayal",
+    "title": "Moderator",
+    "company": "Sugati Ventures",
+    "bio": "Founder & Managing Partner at Sugati Ventures, and a venture capitalist and angel investor focused on HealthTech and AI. She brings global experience in corporate strategy, operations, and launching disruptive technologies.",
+    "image": {
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop"
+    },
+    "imageSquare": {
+      "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop"
+    },
+    "twitter": "",
+    "github": "",
+    "linkedin": "https://linkedin.com/in/rachna-dayal"
+  },
+  {
+    "name": "Pras Hanuma",
+    "slug": "pras-hanuma",
+    "title": "Panelist",
+    "company": "NextUnicorn.Fund",
+    "bio": "Venture Partner at NextUnicorn.Fund with extensive experience in early-stage investing and startup ecosystem development. He has been instrumental in supporting numerous successful startups across various sectors.",
+    "image": {
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop"
+    },
+    "imageSquare": {
+      "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop"
+    },
+    "twitter": "",
+    "github": "",
+    "linkedin": "https://linkedin.com/in/pras-hanuma"
+  },
+  {
+    "name": "Nicholas Mohnacky",
+    "slug": "nicholas-mohnacky",
+    "title": "Panelist",
+    "company": "bundlelQ",
+    "bio": "Co-founder and CEO of bundlelQ, a platform revolutionizing how businesses manage and optimize their operations. With a background in technology and entrepreneurship, Nicholas brings innovative perspectives to the panel discussion.",
+    "image": {
+      "url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop"
+    },
+    "imageSquare": {
+      "url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop"
+    },
+    "twitter": "",
+    "github": "",
+    "linkedin": "https://linkedin.com/in/nicholas-mohnacky"
+  },
+  {
+    "name": "Hans Sandhu",
+    "slug": "hans-sandhu",
+    "title": "Panelist",
+    "company": "Tech Ventures",
+    "bio": "Serial entrepreneur and investor with a passion for building transformative technology companies. Hans has founded and scaled multiple startups, bringing deep operational expertise to the discussion on the future of business with AI.",
+    "image": {
+      "url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop"
+    },
+    "imageSquare": {
+      "url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop"
+    },
+    "twitter": "",
+    "github": "",
+    "linkedin": "https://linkedin.com/in/hans-sandhu"
+  }
+]
