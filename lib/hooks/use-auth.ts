@@ -26,6 +26,7 @@ let globalInitPromise: Promise<void> | null = null;
 let globalUserState: User | null = null;
 let globalLoadingState = true;
 const globalSubscribers = new Set<(user: User | null, loading: boolean) => void>();
+let authStateChangeListenerSet = false;
 
 // Notify all subscribers of state changes
 function notifySubscribers(user: User | null, loading: boolean) {
@@ -265,8 +266,8 @@ export default function useAuth() {
 
     // Listen for auth changes (only set up once globally)
     const client = getSupabaseClient();
-    if (useSupabase && client && !client._authStateChangeListenerSet) {
-      client._authStateChangeListenerSet = true;
+    if (useSupabase && client && !authStateChangeListenerSet) {
+      authStateChangeListenerSet = true;
       let profileFetchInProgress = false;
       
       const { data: { subscription } } = client.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
