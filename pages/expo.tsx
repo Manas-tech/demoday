@@ -45,37 +45,15 @@ export default function ExpoPage({ sponsors: initialSponsors, expoSettings: init
   const [sponsors, setSponsors] = useState(initialSponsors);
 
   useEffect(() => {
-    // If user is already logged in, skip session check
-    if (isLoggedIn) {
-      setCheckingSession(false);
-      return;
-    }
-
     // Wait for auth loading to complete
     if (loading) return;
 
-    const checkAuth = async () => {
-      // Check session directly as a fallback
-      const client = getSupabaseClient();
-      if (client) {
-        try {
-          const { data: { session } } = await client.auth.getSession();
-          if (session?.user) {
-            // Session exists, set immediately (auth state will update)
-            setCheckingSession(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error checking session:', error);
-        }
-      }
-
-      // No session found, redirect to login
-      setCheckingSession(false);
+    // If user is not logged in after loading completes, redirect to login
+    if (!isLoggedIn) {
       router.replace('/login');
-    };
-
-    checkAuth();
+    } else {
+      setCheckingSession(false);
+    }
   }, [loading, isLoggedIn, router]);
 
   // Fetch expo settings client-side to get latest updates

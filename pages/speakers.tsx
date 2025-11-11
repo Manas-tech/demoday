@@ -41,37 +41,15 @@ export default function Speakers({ speakers: initialSpeakers }: Props) {
   const [panelistsImageUrl, setPanelistsImageUrl] = useState('https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg');
 
   useEffect(() => {
-    // If user is already logged in, skip session check
-    if (isLoggedIn) {
-      setCheckingSession(false);
-      return;
-    }
-
     // Wait for auth loading to complete
     if (loading) return;
 
-    const checkAuth = async () => {
-      // Check session directly as a fallback
-      const client = getSupabaseClient();
-      if (client) {
-        try {
-          const { data: { session } } = await client.auth.getSession();
-          if (session?.user) {
-            // Session exists, set immediately (auth state will update)
-            setCheckingSession(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error checking session:', error);
-        }
-      }
-
-      // No session found, redirect to login
-      setCheckingSession(false);
+    // If user is not logged in after loading completes, redirect to login
+    if (!isLoggedIn) {
       router.replace('/login');
-    };
-
-    checkAuth();
+    } else {
+      setCheckingSession(false);
+    }
   }, [loading, isLoggedIn, router]);
 
   // Fetch speakers client-side to get latest updates
