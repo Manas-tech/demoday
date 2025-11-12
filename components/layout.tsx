@@ -27,6 +27,7 @@ import React from 'react';
 import { logUserEvent } from '@lib/log-event';
 import useRole from '@lib/hooks/use-role';
 import useAuth from '@lib/hooks/use-auth';
+import { useSpeakersVisibility } from '@lib/hooks/use-speakers-visibility';
 
 type Props = {
   children: React.ReactNode;
@@ -50,6 +51,7 @@ export default function Layout({
   const disableCta = ['/schedule', '/speakers', '/expo', '/jobs'];
   const { isAdmin } = useRole();
   const { isLoggedIn } = useAuth();
+  const isSpeakersVisible = useSpeakersVisibility();
 
   // Handler for Tune In / Watch Demo Day Live button
   const handleTuneIn = async () => {
@@ -74,7 +76,13 @@ export default function Layout({
               </Link>
             </div>
             <nav className={styles.headerNav}>
-              {isLoggedIn && NAVIGATION.map(({ name, route }) => (
+              {isLoggedIn && NAVIGATION.filter(({ route }) => {
+                // Hide Speakers link if page is not visible
+                if (route === '/speakers' && !isSpeakersVisible) {
+                  return false;
+                }
+                return true;
+              }).map(({ name, route }) => (
                 <a
                   key={name}
                   href={route}

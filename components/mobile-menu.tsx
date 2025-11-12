@@ -27,12 +27,14 @@ import { useButton } from '@react-aria/button';
 import styles from './mobile-menu.module.css';
 import useRole from '@lib/hooks/use-role';
 import useAuth from '@lib/hooks/use-auth';
+import { useSpeakersVisibility } from '@lib/hooks/use-speakers-visibility';
 
 function ModalDialog(props: Parameters<typeof useOverlay>[0] & Parameters<typeof useDialog>[0]) {
   const router = useRouter();
   const activeRoute = router.asPath;
   const { isAdmin } = useRole();
   const { isLoggedIn } = useAuth();
+  const isSpeakersVisible = useSpeakersVisibility();
 
   const ref = useRef<HTMLElement | null>(null);
   const { modalProps } = useModal();
@@ -45,7 +47,13 @@ function ModalDialog(props: Parameters<typeof useOverlay>[0] & Parameters<typeof
     <div className={styles['nav-overlay']}>
       <FocusScope contain restoreFocus autoFocus>
         <nav className={styles.nav} {...overlayProps} {...dialogProps} {...modalProps} ref={ref}>
-          {isLoggedIn && NAVIGATION.map(({ name, route }) => (
+          {isLoggedIn && NAVIGATION.filter(({ route }) => {
+            // Hide Speakers link if page is not visible
+            if (route === '/speakers' && !isSpeakersVisible) {
+              return false;
+            }
+            return true;
+          }).map(({ name, route }) => (
             <Link
               key={name}
               href={route}

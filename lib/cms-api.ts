@@ -158,3 +158,36 @@ export async function getExpoPageSettings(): Promise<{ hero_title: string; descr
     description: 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
   };
 }
+
+export async function getSpeakersPageSettings(): Promise<{ panelists_image_url: string; is_visible: boolean }> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('page_settings')
+        .select('description, is_visible') // Using description to store image URL, is_visible for page visibility
+        .eq('page_key', 'speakers')
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching speakers page settings:', error);
+        return {
+          panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg',
+          is_visible: true
+        };
+      }
+      
+      if (data) {
+        return {
+          panelists_image_url: data.description || 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg',
+          is_visible: data.is_visible !== false // Default to true if null
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching speakers page settings:', error);
+    }
+  }
+  return {
+    panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg',
+    is_visible: true
+  };
+}

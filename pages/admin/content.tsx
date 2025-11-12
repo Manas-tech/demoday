@@ -656,6 +656,23 @@ const SpeakersSettingsForm = ({ data, onChange }: { data: any; onChange: (data: 
           />
         </div>
       )}
+
+      <div style={{ marginTop: '24px', padding: '16px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #ddd' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <input
+            type="checkbox"
+            checked={data.is_visible !== false}
+            onChange={e => onChange({ ...data, is_visible: e.target.checked })}
+            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+          />
+          <label style={{ fontSize: '16px', fontWeight: 600, color: '#333', cursor: 'pointer' }}>
+            Make Speakers Page Visible
+          </label>
+        </div>
+        <p style={{ marginTop: '8px', marginLeft: '32px', fontSize: '14px', color: '#666' }}>
+          When unchecked, the entire /speakers page will be hidden from users.
+        </p>
+      </div>
     </div>
   );
 };
@@ -932,12 +949,14 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           
           if (settings) {
             setData([{
-              panelists_image_url: settings.description || 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+              panelists_image_url: settings.description || 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg',
+              is_visible: settings.is_visible !== false // Default to true if null
             }]);
           } else {
             // Default values if no settings exist
             setData([{
-              panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+              panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg',
+              is_visible: true
             }]);
           }
         } else if (activeTab === 'expo-settings') {
@@ -959,7 +978,11 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           }
           
           if (settings) {
-            setData([settings]);
+            const expoSettings = {
+              hero_title: settings.hero_title || 'Cohort 11',
+              description: settings.description || 'Discover Cohort 11 of MARL Accelerator\'s Demo Day: explore startups, meet founders, view profiles and resources, and connect with pioneering teams.'
+            };
+            setData([expoSettings]);
           } else {
             // Default values if no settings exist
             setData([{
@@ -1023,21 +1046,23 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
   };
 
   useEffect(() => {
-    loadData();
-    // For expo-settings and speakers-settings, automatically open edit mode when data loads
-    if ((activeTab === 'expo-settings' || activeTab === 'speakers-settings') && data.length > 0 && editingIndex === null) {
-      setEditingIndex(0);
-      setEditData(data[0]);
-    }
+    const fetchData = async () => {
+      await loadData();
+    };
+    fetchData();
   }, [activeTab]);
   
   // Auto-edit when expo-settings or speakers-settings data loads
   useEffect(() => {
-    if ((activeTab === 'expo-settings' || activeTab === 'speakers-settings') && data.length > 0 && editingIndex === null && !showAddForm) {
-      setEditingIndex(0);
+    if ((activeTab === 'expo-settings' || activeTab === 'speakers-settings') && data.length > 0 && !showAddForm) {
+      // Always set edit mode and update editData when data loads for settings tabs
+      if (editingIndex === null) {
+        setEditingIndex(0);
+      }
+      // Update editData with latest data (even if already in edit mode, to refresh after page reload)
       setEditData(data[0]);
     }
-  }, [data, activeTab, editingIndex, showAddForm]);
+  }, [data, activeTab, showAddForm]);
   
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -1213,7 +1238,8 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           .upsert({
             page_key: 'speakers',
             hero_title: 'Speakers - MARL Accelerator',
-            description: editData.panelists_image_url
+            description: editData.panelists_image_url,
+            is_visible: editData.is_visible !== false // Default to true if not set
           }, {
             onConflict: 'page_key'
           });
@@ -1242,6 +1268,34 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
       
       await loadData();
       
+      // Update editData with the latest data for settings tabs
+      if (activeTab === 'expo-settings' || activeTab === 'speakers-settings') {
+        // Reload data and update editData
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const pageKey = activeTab === 'expo-settings' ? 'expo' : 'speakers';
+          const { data: updatedSettings } = await supabase
+            .from('page_settings')
+            .select('*')
+            .eq('page_key', pageKey)
+            .maybeSingle();
+          
+          if (updatedSettings) {
+            if (activeTab === 'expo-settings') {
+              setEditData({
+                hero_title: updatedSettings.hero_title || 'Cohort 11',
+                description: updatedSettings.description || ''
+              });
+            } else if (activeTab === 'speakers-settings') {
+              setEditData({
+                panelists_image_url: updatedSettings.description || 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg',
+                is_visible: updatedSettings.is_visible !== false
+              });
+            }
+          }
+        }
+      }
+      
       // Dispatch events to notify frontend pages to refresh
       if (activeTab === 'expo-settings') {
         window.dispatchEvent(new Event('expo-settings-updated'));
@@ -1256,8 +1310,11 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
       }
       
       alert('Changes saved successfully!');
-      setEditingIndex(null);
-      setEditData(null);
+      // Keep edit mode open for settings tabs
+      if (activeTab !== 'expo-settings' && activeTab !== 'speakers-settings') {
+        setEditingIndex(null);
+        setEditData(null);
+      }
       setSaving(false);
     } catch (error: any) {
       const errorMessage = error?.message || 'Unknown error occurred';
@@ -1602,7 +1659,8 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
         };
       case 'speakers-settings':
         return {
-          panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg'
+          panelists_image_url: 'https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg',
+          is_visible: true
         };
       case 'expo-settings':
         return {

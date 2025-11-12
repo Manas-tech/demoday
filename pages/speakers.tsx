@@ -39,6 +39,7 @@ export default function Speakers({ speakers: initialSpeakers }: Props) {
   const [checkingSession, setCheckingSession] = useState(true);
   const [speakers, setSpeakers] = useState(initialSpeakers);
   const [panelistsImageUrl, setPanelistsImageUrl] = useState('https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg');
+  const [isPageVisible, setIsPageVisible] = useState(true);
 
   useEffect(() => {
     // Wait for auth loading to complete
@@ -102,33 +103,36 @@ export default function Speakers({ speakers: initialSpeakers }: Props) {
     }
   }, [isLoggedIn, loading]);
 
-  // Fetch panelists image URL
+  // Fetch panelists image URL and page visibility
   useEffect(() => {
-    const fetchPanelistsImage = async () => {
+    const fetchSpeakersSettings = async () => {
       const client = getSupabaseClient();
       if (client) {
         try {
           const { data, error } = await client
             .from('page_settings')
-            .select('description')
+            .select('description, is_visible')
             .eq('page_key', 'speakers')
             .maybeSingle();
           
-          if (!error && data && data.description) {
-            setPanelistsImageUrl(data.description);
+          if (!error && data) {
+            if (data.description) {
+              setPanelistsImageUrl(data.description);
+            }
+            setIsPageVisible(data.is_visible !== false); // Default to true if null
           }
         } catch (error) {
-          console.error('Error fetching panelists image:', error);
+          console.error('Error fetching speakers settings:', error);
         }
       }
     };
 
     if (isLoggedIn && !loading) {
-      fetchPanelistsImage();
+      fetchSpeakersSettings();
       
       // Listen for speakers settings updates
       const handleSpeakersSettingsUpdate = () => {
-        fetchPanelistsImage();
+        fetchSpeakersSettings();
       };
       
       window.addEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
@@ -156,6 +160,26 @@ export default function Speakers({ speakers: initialSpeakers }: Props) {
 
   if (!isLoggedIn) {
     return null;
+  }
+
+  if (!isPageVisible) {
+    return (
+      <Page meta={meta}>
+        <Layout>
+          <Header
+            hero={`Speakers - ${BRAND_NAME}`}
+          />
+          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#333', marginBottom: '16px' }}>
+              This page is currently unavailable
+            </h2>
+            <p style={{ fontSize: '16px', color: '#666' }}>
+              The speakers page has been temporarily hidden. Please check back later.
+            </p>
+          </div>
+        </Layout>
+      </Page>
+    );
   }
 
   return (
