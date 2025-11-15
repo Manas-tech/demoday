@@ -415,6 +415,13 @@ const CompanyForm = ({ data, onChange }: { data: any; onChange: (data: any) => v
           placeholder="Founder names"
         />
         <FormInput
+          label="Founder Email"
+          value={data.founderEmail || ''}
+          onChange={(val: string) => onChange({ ...data, founderEmail: val || null })}
+          placeholder="founder@company.com"
+          type="email"
+        />
+        <FormInput
           label="Call to Action Text"
           value={data.callToAction || ''}
           onChange={(val: string) => onChange({ ...data, callToAction: val || null })}
@@ -900,6 +907,7 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
                 url: link.url
               })),
               founders: c.founders,
+              founderEmail: c.founder_email || null,
               is_visible: c.is_visible !== false // Default to true if null
             })));
           } else {
@@ -1161,7 +1169,8 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
             youtube_slug: editData.youtubeSlug || null,
             card_image_url: editData.cardImage?.url || '',
             logo_url: editData.logo?.url || '',
-            founders: editData.founders || null
+            founders: editData.founders || null,
+            founder_email: editData.founderEmail || null
           };
           
           const { error: updateError } = await supabase
@@ -1395,6 +1404,7 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           card_image_url: editData.cardImage?.url?.trim() || '',
           logo_url: editData.logo?.url?.trim() || '',
           founders: editData.founders?.trim() || null,
+          founder_email: editData.founderEmail?.trim() || null,
           is_visible: true // New items are visible by default
         };
         
@@ -1655,7 +1665,8 @@ export default function ContentManagement({ speakers, sponsors, stages, jobs }: 
           cardImage: { url: '' },
           logo: { url: '' },
           shortDescription: null,
-          founders: null
+          founders: null,
+          founderEmail: null
         };
       case 'speakers-settings':
         return {

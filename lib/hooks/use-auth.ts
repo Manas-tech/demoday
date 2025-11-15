@@ -479,6 +479,7 @@ export default function useAuth() {
         return { success: false, error: 'Supabase client not initialized' };
       }
       try {
+        // Accept any email domain - no restrictions
         const { data, error } = await client.auth.signUp({
           email,
           password,

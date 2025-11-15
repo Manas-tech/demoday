@@ -72,6 +72,7 @@ export type Sponsor = {
   youtubeSlug: string | null;
   shortDescription: string | null;
   founders: string | null;
+  founderEmail: string | null;
   onePagerPdf?: string | null;
 };
 

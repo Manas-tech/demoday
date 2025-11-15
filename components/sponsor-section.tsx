@@ -24,6 +24,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import { BRAND_COLOR, SITE_NAME } from '@lib/constants';
 import { logUserEvent } from '@lib/log-event';
+import useAuth from '@lib/hooks/use-auth';
 
 type Props = {
   sponsor: Sponsor;
@@ -126,7 +127,7 @@ export default function SponsorSection({ sponsor }: Props) {
                 {sponsor.callToAction || 'Website'}
               </a>
             )}
-            {sponsor.discord && (
+            {sponsor.founderEmail && (
               <Dialog.Root>
                 <Dialog.Trigger asChild>
                   <button
@@ -172,31 +173,12 @@ export default function SponsorSection({ sponsor }: Props) {
                       color: BRAND_COLOR
                     }}
                   >
-                    Request Introduction?
+                    Connect with Founder
                   </h2>
                   <p style={{ marginBottom: 24, fontSize: 16 }}>
-                    Would you like to request an introduction to {sponsor.name}? The {SITE_NAME}{' '}
-                    team will send an intro email.
+                    Would you like to connect with the founder of {sponsor.name}? We'll send an email to introduce you.
                   </p>
-                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                    <Dialog.Close asChild>
-                      <button
-                        type="button"
-                        style={{
-                          padding: '10px 20px',
-                          background: '#e0e0e0',
-                          color: '#333',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: 600,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </Dialog.Close>
-                    <ConfirmIntroButton sponsor={sponsor} />
-                  </div>
+                  <ConfirmIntroButton sponsor={sponsor} />
                 </Dialog.Content>
               </Dialog.Root>
             )}
@@ -304,19 +286,40 @@ function ConfirmIntroButton({ sponsor }: { sponsor: Sponsor }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const handleConfirm = async () => {
+    if (!sponsor.founderEmail) {
+      setError('Founder email not configured for this company');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(false);
     try {
-      // Static site - just simulate success
-      console.log('Request intro:', {
-        sponsorName: sponsor.name,
-        sponsorEmail: sponsor.discord,
-        sponsorCompany: sponsor.name,
-        founders: sponsor.founders
+      const userName = user?.name || '';
+      const userEmail = user?.email || '';
+
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: sponsor.founderEmail,
+          companyName: sponsor.name,
+          userName: userName,
+          userEmail: userEmail
+        }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send email');
+      }
+
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -325,30 +328,73 @@ function ConfirmIntroButton({ sponsor }: { sponsor: Sponsor }) {
     }
   };
 
-  if (success) {
-    return (
-      <span style={{ color: BRAND_COLOR, fontWeight: 600, alignSelf: 'center' }}>
-        Request sent!
-      </span>
-    );
-  }
   return (
-    <button
-      type="button"
-      style={{
-        padding: '10px 20px',
-        background: BRAND_COLOR,
-        color: '#fff',
-        border: 'none',
-        borderRadius: '8px',
-        fontWeight: 600,
-        cursor: loading ? 'not-allowed' : 'pointer',
-        minWidth: 100
-      }}
-      onClick={handleConfirm}
-      disabled={loading}
-    >
-      {loading ? 'Sending...' : 'Confirm'}
-    </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {error && (
+        <p style={{ marginBottom: 0, fontSize: 14, color: '#dc3545', textAlign: 'center' }}>
+          {error}
+        </p>
+      )}
+      {success ? (
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <span style={{ color: BRAND_COLOR, fontWeight: 600 }}>
+            Request sent!
+          </span>
+          <Dialog.Close asChild>
+            <button
+              type="button"
+              style={{
+                padding: '10px 20px',
+                background: BRAND_COLOR,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+          </Dialog.Close>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <Dialog.Close asChild>
+            <button
+              type="button"
+              style={{
+                padding: '10px 20px',
+                background: '#e0e0e0',
+                color: '#333',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          </Dialog.Close>
+          <button
+            type="button"
+            style={{
+              padding: '10px 20px',
+              background: BRAND_COLOR,
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              minWidth: 100,
+              opacity: loading ? 0.6 : 1
+            }}
+            onClick={handleConfirm}
+            disabled={loading}
+          >
+            {loading ? 'Sending...' : 'Confirm'}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

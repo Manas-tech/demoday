@@ -32,10 +32,11 @@ type Props = {
   sponsor: Sponsor;
 };
 
-export default function SponsorPage({ sponsor }: Props) {
+export default function SponsorPage({ sponsor: initialSponsor }: Props) {
   const router = useRouter();
   const { isLoggedIn, loading } = useAuth();
   const [checkingSession, setCheckingSession] = useState(true);
+  const [sponsor, setSponsor] = useState<Sponsor>(initialSponsor);
 
   useEffect(() => {
     // Wait for auth loading to complete
@@ -48,6 +49,66 @@ export default function SponsorPage({ sponsor }: Props) {
       setCheckingSession(false);
     }
   }, [loading, isLoggedIn, router]);
+
+  // Fetch latest sponsor data client-side to get founderEmail
+  useEffect(() => {
+    const fetchSponsor = async () => {
+      const client = getSupabaseClient();
+      if (client && isLoggedIn && !loading) {
+        try {
+          const { data: company, error } = await client
+            .from('companies')
+            .select(`
+              *,
+              company_links (*)
+            `)
+            .eq('slug', initialSponsor.slug)
+            .maybeSingle();
+          
+          if (!error && company) {
+            const updatedSponsor: Sponsor = {
+              name: company.name,
+              slug: company.slug,
+              description: company.description,
+              shortDescription: company.short_description,
+              website: company.website,
+              callToAction: company.call_to_action,
+              callToActionLink: company.call_to_action_link,
+              discord: company.discord,
+              tier: company.tier,
+              youtubeSlug: company.youtube_slug,
+              cardImage: { url: company.card_image_url || '' },
+              logo: { url: company.logo_url || company.card_image_url || '' },
+              links: (company.company_links || []).map((link: any) => ({
+                text: link.text,
+                url: link.url
+              })),
+              founders: company.founders,
+              founderEmail: company.founder_email || null
+            };
+            setSponsor(updatedSponsor);
+          }
+        } catch (error) {
+          console.error('Error fetching sponsor:', error);
+        }
+      }
+    };
+
+    if (isLoggedIn && !loading) {
+      fetchSponsor();
+      
+      // Listen for sponsors/companies updates
+      const handleSponsorsUpdate = () => {
+        fetchSponsor();
+      };
+      
+      window.addEventListener('sponsors-updated', handleSponsorsUpdate);
+      
+      return () => {
+        window.removeEventListener('sponsors-updated', handleSponsorsUpdate);
+      };
+    }
+  }, [isLoggedIn, loading, initialSponsor.slug]);
 
   const meta = {
     title: 'Demo - Virtual Event Starter Kit',
@@ -107,7 +168,8 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
       url: sponsor.logo?.url || ''
     },
     shortDescription: sponsor.shortDescription || null,
-    founders: sponsor.founders || null
+    founders: sponsor.founders || null,
+    founderEmail: sponsor.founderEmail || null
   };
 
   return {

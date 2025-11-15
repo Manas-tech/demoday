@@ -50,7 +50,7 @@ export default function Layout({
   const activeRoute = router.asPath;
   const disableCta = ['/schedule', '/speakers', '/expo', '/jobs'];
   const { isAdmin } = useRole();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, logout } = useAuth();
   const isSpeakersVisible = useSpeakersVisibility();
 
   // Handler for Tune In / Watch Demo Day Live button
@@ -61,6 +61,12 @@ export default function Layout({
       await logUserEvent('watch_demo_day_live');
       router.push('/live-stage');
     }
+  };
+
+  // Handler for logout
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
   };
 
   return (
@@ -104,9 +110,29 @@ export default function Layout({
                 </a>
               )}
             </nav>
-            <button className={styles.headerCtaBtn} onClick={handleTuneIn} style={{ padding: '8px 16px', background: '#FF7B00', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
-              {isLoggedIn ? 'Watch Demo Day Live' : 'Tune In'}
-            </button>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {isLoggedIn && (
+                <button 
+                  onClick={handleLogout} 
+                  style={{ 
+                    padding: '8px 16px', 
+                    background: '#dc3545', 
+                    color: '#fff', 
+                    border: 'none', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer', 
+                    fontWeight: 600,
+                    fontSize: '14px'
+                  }}
+                  title="Logout"
+                >
+                  Logout
+                </button>
+              )}
+              <button className={styles.headerCtaBtn} onClick={handleTuneIn} style={{ padding: '8px 16px', background: '#FF7B00', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                {isLoggedIn ? 'Watch Demo Day Live' : 'Tune In'}
+              </button>
+            </div>
           </header>
         )}
         <div className={styles.page}>

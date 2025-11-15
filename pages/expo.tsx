@@ -130,7 +130,8 @@ export default function ExpoPage({ sponsors: initialSponsors, expoSettings: init
                   text: link.text,
                   url: link.url
                 })),
-                founders: c.founders
+                founders: c.founders,
+                founderEmail: c.founder_email || null
               }));
             setSponsors(formattedSponsors);
           }

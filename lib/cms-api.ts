@@ -110,7 +110,8 @@ export async function getAllSponsors(): Promise<Sponsor[]> {
             text: link.text,
             url: link.url
           })),
-          founders: c.founders
+          founders: c.founders,
+          founderEmail: c.founder_email || null
         }));
     } catch (error) {
       console.error('Error fetching companies:', error);
