@@ -209,7 +209,8 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
       url: sponsor.logo?.url || ''
     },
     shortDescription: sponsor.shortDescription || null,
-    founders: sponsor.founders || null
+    founders: sponsor.founders || null,
+    founderEmail: sponsor.founderEmail || null
   }));
 
   return {
