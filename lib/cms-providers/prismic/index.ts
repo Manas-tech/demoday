@@ -262,6 +262,8 @@ export async function getAllSponsors(): Promise<Sponsor[]> {
         url: getLinkUrl(item.link),
         text: item.link_text
       })),
+      founders: null,
+      founderEmail: null,
       cardImage: {
         url:
           edge.node.card_image?.url.replace('compress,format', 'format') ||

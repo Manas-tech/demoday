@@ -48,6 +48,10 @@ function transformResponse(response: any[], _speakers?: any) {
         });
       }
     });
+    // Ensure founderEmail is set (default to null if not present)
+    if (!('founderEmail' in item)) {
+      item.founderEmail = null;
+    }
   });
 
   return content;

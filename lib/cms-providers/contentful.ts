@@ -145,7 +145,7 @@ export async function getAllSponsors(): Promise<Sponsor[]> {
   `);
 
   return data.companyCollection.items.reduce((allSponsors: any, sponsor: any) => {
-    return [{ id: sponsor.sys.id, ...sponsor }, ...(allSponsors || [])];
+    return [{ id: sponsor.sys.id, ...sponsor, founderEmail: sponsor.founderEmail || null }, ...(allSponsors || [])];
   }, []);
 }
 

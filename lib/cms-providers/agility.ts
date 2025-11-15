@@ -149,6 +149,7 @@ export async function getAllSponsors(): Promise<Sponsor[]> {
       description: company.fields.description,
       shortDescription: company.fields.shortDescription,
       founders: company.fields.founders,
+      founderEmail: company.fields.founderEmail || null,
       cardImage: {
         url: `${company.fields.cardImage.url}`
       },

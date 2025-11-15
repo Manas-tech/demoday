@@ -200,6 +200,7 @@ export async function getAllSponsors(): Promise<Sponsor[]> {
 
   return data.sponsors.map((sponsor: Sponsor) => ({
     ...sponsor,
+    founderEmail: sponsor.founderEmail || null,
     cardImage: {
       ...sponsor.cardImage,
       ...serializeImage(sponsor.cardImage)
