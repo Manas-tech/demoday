@@ -21,7 +21,7 @@ import { Sponsor } from '@lib/types';
 import styles from './sponsor-section.module.css';
 import styleUtils from './utils.module.css';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BRAND_COLOR, SITE_NAME } from '@lib/constants';
 import { logUserEvent } from '@lib/log-event';
 import useAuth from '@lib/hooks/use-auth';
@@ -62,21 +62,18 @@ export default function SponsorSection({ sponsor }: Props) {
         Back to companies
       </Link>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-          gap: '56px',
-          alignItems: 'start'
-        }}
-      >
+      <div className={styles.sponsorGrid}>
         {/* Left Section - Company Details */}
         <div
           style={{
             background: '#fff',
             padding: '48px',
             borderRadius: '16px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
           <h1
@@ -128,59 +125,7 @@ export default function SponsorSection({ sponsor }: Props) {
               </a>
             )}
             {sponsor.founderEmail && (
-              <Dialog.Root>
-                <Dialog.Trigger asChild>
-                  <button
-                    type="button"
-                    style={{
-                      padding: '14px 28px',
-                      background: BRAND_COLOR,
-                      color: '#fff',
-                      borderRadius: '8px',
-                      border: 'none',
-                      fontWeight: 600,
-                      fontSize: '18px',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() =>
-                      logUserEvent('connect_with_founder', { sponsor: sponsor.name })
-                    }
-                  >
-                    Connect with Founder
-                  </button>
-                </Dialog.Trigger>
-                <Dialog.Overlay
-                  className="fixed inset-0"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9998 }}
-                />
-                <Dialog.Content
-                  className="dialog-content bg-white md:w-[400px] w-[95%] rounded-lg p-6"
-                  style={{
-                    fontFamily: 'inherit',
-                    color: '#222',
-                    position: 'fixed',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 9999
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 22,
-                      marginBottom: 12,
-                      color: BRAND_COLOR
-                    }}
-                  >
-                    Connect with Founder
-                  </h2>
-                  <p style={{ marginBottom: 24, fontSize: 16 }}>
-                    Would you like to connect with the founder of {sponsor.name}? We'll send an email to introduce you.
-                  </p>
-                  <ConfirmIntroButton sponsor={sponsor} />
-                </Dialog.Content>
-              </Dialog.Root>
+              <ConnectWithFounderDialog sponsor={sponsor} />
             )}
           </div>
           <div
@@ -256,10 +201,14 @@ export default function SponsorSection({ sponsor }: Props) {
               background: '#fff',
               borderRadius: '16px',
               overflow: 'hidden',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
-            <div style={{ position: 'relative', paddingBottom: '56.25%', background: '#000' }}>
+            <div style={{ position: 'relative', width: '100%', flex: '1', background: '#000' }}>
               <iframe
                 style={{
                   position: 'absolute',
@@ -282,11 +231,237 @@ export default function SponsorSection({ sponsor }: Props) {
   );
 }
 
-function ConfirmIntroButton({ sponsor }: { sponsor: Sponsor }) {
+function ConnectWithFounderDialog({ sponsor }: { sponsor: Sponsor }) {
+  const [showForm, setShowForm] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [email, setEmail] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Pre-fill form with user data if available
+  useEffect(() => {
+    if (user?.name) {
+      const nameParts = user.name.split(' ');
+      setFirstName(nameParts[0] || '');
+    }
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user]);
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!firstName.trim()) {
+      setFormError('First name is required');
+      return;
+    }
+
+    if (!email.trim()) {
+      setFormError('Email address is required');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setFormError('Please enter a valid email address');
+      return;
+    }
+
+    setShowForm(false);
+    setShowConfirm(true);
+  };
+
+  return (
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <button
+          type="button"
+          style={{
+            padding: '14px 28px',
+            background: BRAND_COLOR,
+            color: '#fff',
+            borderRadius: '8px',
+            border: 'none',
+            fontWeight: 600,
+            fontSize: '18px',
+            cursor: 'pointer'
+          }}
+          onClick={() => {
+            logUserEvent('connect_with_founder', { sponsor: sponsor.name });
+            setShowForm(true);
+            setShowConfirm(false);
+            setFormError(null);
+          }}
+        >
+          Connect with Founder
+        </button>
+      </Dialog.Trigger>
+      <Dialog.Overlay
+        className="fixed inset-0"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9998 }}
+      />
+      <Dialog.Content
+        className="dialog-content bg-white md:w-[450px] w-[95%] rounded-lg p-6"
+        style={{
+          fontFamily: 'inherit',
+          color: '#222',
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 9999,
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}
+      >
+        {showForm && (
+          <>
+            <h2
+              style={{
+                fontWeight: 700,
+                fontSize: 22,
+                marginBottom: 12,
+                color: BRAND_COLOR
+              }}
+            >
+              Connect with Founder
+            </h2>
+            <p style={{ marginBottom: 24, fontSize: 16, color: '#666' }}>
+              Please provide your details to connect with the founder of {sponsor.name}.
+            </p>
+            <form onSubmit={handleFormSubmit}>
+              <div style={{ marginBottom: 20 }}>
+                <label
+                  htmlFor="firstName"
+                  style={{
+                    display: 'block',
+                    marginBottom: 8,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: '#333'
+                  }}
+                >
+                  First Name *
+                </label>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: 16,
+                    boxSizing: 'border-box'
+                  }}
+                  required
+                />
+              </div>
+              <div style={{ marginBottom: 24 }}>
+                <label
+                  htmlFor="email"
+                  style={{
+                    display: 'block',
+                    marginBottom: 8,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: '#333'
+                  }}
+                >
+                  Email Address *
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: 16,
+                    boxSizing: 'border-box'
+                  }}
+                  required
+                />
+              </div>
+              {formError && (
+                <p style={{ marginBottom: 16, fontSize: 14, color: '#dc3545', textAlign: 'center' }}>
+                  {formError}
+                </p>
+              )}
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    style={{
+                      padding: '10px 20px',
+                      background: '#e0e0e0',
+                      color: '#333',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </Dialog.Close>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '10px 20px',
+                    background: BRAND_COLOR,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Continue
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+        {showConfirm && (
+          <ConfirmIntroButton
+            sponsor={sponsor}
+            firstName={firstName}
+            email={email}
+            onBack={() => {
+              setShowConfirm(false);
+              setShowForm(true);
+            }}
+          />
+        )}
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+}
+
+function ConfirmIntroButton({
+  sponsor,
+  firstName,
+  email,
+  onBack
+}: {
+  sponsor: Sponsor;
+  firstName: string;
+  email: string;
+  onBack: () => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   const handleConfirm = async () => {
     if (!sponsor.founderEmail) {
@@ -298,9 +473,6 @@ function ConfirmIntroButton({ sponsor }: { sponsor: Sponsor }) {
     setError(null);
     setSuccess(false);
     try {
-      const userName = user?.name || '';
-      const userEmail = user?.email || '';
-
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
@@ -309,8 +481,9 @@ function ConfirmIntroButton({ sponsor }: { sponsor: Sponsor }) {
         body: JSON.stringify({
           to: sponsor.founderEmail,
           companyName: sponsor.name,
-          userName: userName,
-          userEmail: userEmail
+          userName: firstName,
+          userEmail: email,
+          founders: sponsor.founders
         }),
       });
 
@@ -330,6 +503,27 @@ function ConfirmIntroButton({ sponsor }: { sponsor: Sponsor }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <h2
+        style={{
+          fontWeight: 700,
+          fontSize: 22,
+          marginBottom: 12,
+          color: BRAND_COLOR
+        }}
+      >
+        Confirm Connection Request
+      </h2>
+      <p style={{ marginBottom: 16, fontSize: 16 }}>
+        Would you like to connect with the founder of {sponsor.name}? We'll send an email to introduce you.
+      </p>
+      <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '8px', marginBottom: 16 }}>
+        <p style={{ margin: 0, fontSize: 14, color: '#666' }}>
+          <strong>Your Name:</strong> {firstName}
+        </p>
+        <p style={{ margin: '4px 0 0 0', fontSize: 14, color: '#666' }}>
+          <strong>Your Email:</strong> {email}
+        </p>
+      </div>
       {error && (
         <p style={{ marginBottom: 0, fontSize: 14, color: '#dc3545', textAlign: 'center' }}>
           {error}
@@ -359,22 +553,21 @@ function ConfirmIntroButton({ sponsor }: { sponsor: Sponsor }) {
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-          <Dialog.Close asChild>
-            <button
-              type="button"
-              style={{
-                padding: '10px 20px',
-                background: '#e0e0e0',
-                color: '#333',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-          </Dialog.Close>
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              padding: '10px 20px',
+              background: '#e0e0e0',
+              color: '#333',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            Back
+          </button>
           <button
             type="button"
             style={{
