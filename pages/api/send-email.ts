@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 
 type ResponseData = {
   success: boolean;
@@ -26,10 +28,21 @@ export default async function handler(
   const fromEmail = process.env.FROM_EMAIL || 'no-reply@demoday.marlvc.com';
   const supportEmail = process.env.SUPPORT_EMAIL || 'prakash@marlaccelerator.com';
   const siteUrl = process.env.NEXT_PUBLIC_SITE_ORIGIN || process.env.SITE_URL || 'https://demoday.marlvc.com';
-  const logoUrl = `${siteUrl}/marl-logo.avif`;
   
   // Extract first founder name if multiple founders are listed
   const founderName = founders ? (founders.split(',')[0].trim() || founders.split(' and ')[0].trim()) : null;
+  
+  // Read logo file and convert to base64 for email embedding
+  let logoBase64 = '';
+  try {
+    const logoPath = path.join(process.cwd(), 'public', 'marl-logo.png');
+    if (fs.existsSync(logoPath)) {
+      const logoBuffer = fs.readFileSync(logoPath);
+      logoBase64 = logoBuffer.toString('base64');
+    }
+  } catch (error) {
+    console.error('Error reading logo file:', error);
+  }
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -41,11 +54,24 @@ export default async function handler(
 
   try {
     // Email template matching the example
-    const founderText = founderName ? `the founder, ${founderName},` : 'the founder';
+    const founderText = founderName ? `the founder, <strong>${founderName}</strong>,` : 'the founder';
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <img src="${logoUrl}" alt="MARL Accelerator" style="max-width: 120px; height: auto; margin-bottom: 10px;" />
+          ${logoBase64 ? `
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+            <tr>
+              <td style="text-align: center;">
+                <img 
+                  src="data:image/png;base64,${logoBase64}" 
+                  alt="MARL Accelerator" 
+                  width="120" 
+                  style="max-width: 120px; height: auto; margin-bottom: 10px; display: block; border: 0; outline: none; text-decoration: none;" 
+                />
+              </td>
+            </tr>
+          </table>
+          ` : ''}
           <div style="font-size: 24px; font-weight: 700; color: #333; margin-bottom: 5px;">MARL</div>
           <div style="font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 1px;">accelerator</div>
         </div>

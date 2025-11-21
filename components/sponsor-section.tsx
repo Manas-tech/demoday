@@ -203,12 +203,11 @@ export default function SponsorSection({ sponsor }: Props) {
               overflow: 'hidden',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               width: '100%',
-              height: '100%',
               display: 'flex',
               flexDirection: 'column'
             }}
           >
-            <div style={{ position: 'relative', width: '100%', flex: '1', background: '#000' }}>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000' }}>
               <iframe
                 style={{
                   position: 'absolute',
@@ -224,6 +223,82 @@ export default function SponsorSection({ sponsor }: Props) {
                 title={sponsor.name}
               />
             </div>
+            {sponsor.founders && (
+              <div style={{ padding: '24px', borderTop: '1px solid #e0e0e0', background: '#fafafa' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                  {(sponsor.cardImage?.url || sponsor.logo?.url) && (
+                    <div
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        background: '#e0e0e0',
+                        border: '2px solid #fff',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <Image
+                        src={sponsor.cardImage?.url || sponsor.logo?.url || ''}
+                        alt={sponsor.founders}
+                        width={56}
+                        height={56}
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    </div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '18px', fontWeight: 600, color: '#333', marginBottom: '4px', lineHeight: '1.3' }}>
+                      {sponsor.founders.split(',')[0].trim()}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#666', fontWeight: 500 }}>
+                      {sponsor.founders.includes(',') ? 'Founders' : 'Founder'}
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href={`https://www.youtube.com/watch?v=${sponsor.youtubeSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 20px',
+                    background: '#FF0000',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 4px rgba(255,0,0,0.2)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#CC0000';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(255,0,0,0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#FF0000';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(255,0,0,0.2)';
+                  }}
+                  onClick={() =>
+                    logUserEvent('watch_youtube', {
+                      sponsor: sponsor.name,
+                      videoId: sponsor.youtubeSlug
+                    })
+                  }
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                  Watch on YouTube
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>

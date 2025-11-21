@@ -10,16 +10,9 @@ export default function LiveStage() {
         <meta name="description" content="Live Stage streaming information and setup" />
       </Head>
       <div style={{ padding: '40px 20px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 200px)' }}>
-        <iframe
-          src="https://luma.com/embed/event/evt-8Kt2FuRzQ6DoKFb/simple"
-          width="600"
-          height="450"
-          frameBorder="0"
-          style={{ border: '1px solid #bfcbda88', borderRadius: '4px' }}
-          allow="fullscreen; payment"
-          aria-hidden="false"
-          tabIndex={0}
-        />
+        <p style={{ fontSize: '18px', lineHeight: '1.6', color: '#333', textAlign: 'center', maxWidth: '800px' }}>
+          Demo Day will be streamed live on December 3rd at 1:00 PM PST. The live-stream will appear here once we go live.
+        </p>
       </div>
     </Layout>
   );
