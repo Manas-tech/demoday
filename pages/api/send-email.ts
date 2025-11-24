@@ -32,16 +32,32 @@ export default async function handler(
   // Extract first founder name if multiple founders are listed
   const founderName = founders ? (founders.split(',')[0].trim() || founders.split(' and ')[0].trim()) : null;
   
-  // Read logo file and convert to base64 for email embedding
-  let logoBase64 = '';
+  // Read logo file for email attachment
+  let logoPath = '';
+  let logoMimeType = 'image/jpeg';
   try {
-    const logoPath = path.join(process.cwd(), 'public', 'marl-logo.png');
-    if (fs.existsSync(logoPath)) {
-      const logoBuffer = fs.readFileSync(logoPath);
-      logoBase64 = logoBuffer.toString('base64');
+    // Try JPG file from public folder first
+    const jpgPath = path.join(process.cwd(), 'public', 'thumbnail_MARL_Logo.jpg');
+    if (fs.existsSync(jpgPath)) {
+      logoPath = jpgPath;
+      logoMimeType = 'image/jpeg';
+    } else {
+      // Try root directory as fallback
+      const rootJpgPath = path.join(process.cwd(), 'thumbnail_MARL_Logo.jpg');
+      if (fs.existsSync(rootJpgPath)) {
+        logoPath = rootJpgPath;
+        logoMimeType = 'image/jpeg';
+      } else {
+        // Fallback to PNG if JPG doesn't exist
+        const pngPath = path.join(process.cwd(), 'public', 'marl-logo.png');
+        if (fs.existsSync(pngPath)) {
+          logoPath = pngPath;
+          logoMimeType = 'image/png';
+        }
+      }
     }
   } catch (error) {
-    console.error('Error reading logo file:', error);
+    console.error('Error finding logo file:', error);
   }
 
   const transporter = nodemailer.createTransport({
@@ -58,12 +74,12 @@ export default async function handler(
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          ${logoBase64 ? `
+          ${logoPath ? `
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
             <tr>
               <td style="text-align: center;">
                 <img 
-                  src="data:image/png;base64,${logoBase64}" 
+                  src="cid:marl-logo" 
                   alt="MARL Accelerator" 
                   width="120" 
                   style="max-width: 120px; height: auto; margin-bottom: 10px; display: block; border: 0; outline: none; text-decoration: none;" 
@@ -99,13 +115,24 @@ export default async function handler(
       </div>
     `;
 
+    // Prepare attachments if logo exists
+    const attachments = [];
+    if (logoPath && fs.existsSync(logoPath)) {
+      attachments.push({
+        filename: 'marl-logo.jpg',
+        path: logoPath,
+        cid: 'marl-logo' // Content ID for referencing in HTML
+      });
+    }
+
     // Send one email to both the requester and the founder
     const mailOptions = {
       from: `"MARL Accelerator" <${fromEmail}>`,
       to: `${userName} <${userEmail}>, ${companyName} <${to}>`,
       replyTo: fromEmail,
       subject: `${userName} <> ${companyName}`,
-      html: emailHtml
+      html: emailHtml,
+      attachments: attachments
     };
 
     await transporter.sendMail(mailOptions);
