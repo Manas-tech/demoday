@@ -16,7 +16,6 @@
 
 import { GetStaticProps } from 'next';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 
 import Page from '@components/page';
 import SponsorsGrid from '@components/sponsors-grid';
@@ -26,7 +25,6 @@ import Layout from '@components/layout';
 import { getAllSponsors, getExpoPageSettings } from '@lib/cms-api';
 import { Sponsor } from '@lib/types';
 import { META_DESCRIPTION } from '@lib/constants';
-import useAuth from '@lib/hooks/use-auth';
 import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 type Props = {
@@ -38,23 +36,8 @@ type Props = {
 };
 
 export default function ExpoPage({ sponsors: initialSponsors, expoSettings: initialExpoSettings }: Props) {
-  const router = useRouter();
-  const { isLoggedIn, loading } = useAuth();
-  const [checkingSession, setCheckingSession] = useState(true);
   const [expoSettings, setExpoSettings] = useState(initialExpoSettings);
   const [sponsors, setSponsors] = useState(initialSponsors);
-
-  useEffect(() => {
-    // Wait for auth loading to complete
-    if (loading) return;
-
-    // If user is not logged in after loading completes, redirect to login
-    if (!isLoggedIn) {
-      router.replace('/login');
-    } else {
-      setCheckingSession(false);
-    }
-  }, [loading, isLoggedIn, router]);
 
   // Fetch expo settings client-side to get latest updates
   useEffect(() => {
@@ -80,21 +63,19 @@ export default function ExpoPage({ sponsors: initialSponsors, expoSettings: init
       }
     };
 
-    if (isLoggedIn && !loading) {
+    fetchExpoSettings();
+    
+    // Listen for expo settings updates
+    const handleExpoSettingsUpdate = () => {
       fetchExpoSettings();
-      
-      // Listen for expo settings updates
-      const handleExpoSettingsUpdate = () => {
-        fetchExpoSettings();
-      };
-      
-      window.addEventListener('expo-settings-updated', handleExpoSettingsUpdate);
-      
-      return () => {
-        window.removeEventListener('expo-settings-updated', handleExpoSettingsUpdate);
-      };
-    }
-  }, [isLoggedIn, loading, initialExpoSettings]);
+    };
+    
+    window.addEventListener('expo-settings-updated', handleExpoSettingsUpdate);
+    
+    return () => {
+      window.removeEventListener('expo-settings-updated', handleExpoSettingsUpdate);
+    };
+  }, [initialExpoSettings]);
 
   // Fetch sponsors client-side to get latest updates
   useEffect(() => {
@@ -141,40 +122,24 @@ export default function ExpoPage({ sponsors: initialSponsors, expoSettings: init
       }
     };
 
-    if (isLoggedIn && !loading) {
+    fetchSponsors();
+    
+    // Listen for sponsors/companies updates
+    const handleSponsorsUpdate = () => {
       fetchSponsors();
-      
-      // Listen for sponsors/companies updates
-      const handleSponsorsUpdate = () => {
-        fetchSponsors();
-      };
-      
-      window.addEventListener('sponsors-updated', handleSponsorsUpdate);
-      
-      return () => {
-        window.removeEventListener('sponsors-updated', handleSponsorsUpdate);
-      };
-    }
-  }, [isLoggedIn, loading]);
+    };
+    
+    window.addEventListener('sponsors-updated', handleSponsorsUpdate);
+    
+    return () => {
+      window.removeEventListener('sponsors-updated', handleSponsorsUpdate);
+    };
+  }, []);
 
   const meta = {
     title: 'MARL Accelerator Demo Day',
     description: META_DESCRIPTION
   };
-
-  if (loading || checkingSession) {
-    return (
-      <Page meta={meta}>
-        <Layout>
-          <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
-        </Layout>
-      </Page>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return null;
-  }
 
   return (
     <Page meta={meta}>

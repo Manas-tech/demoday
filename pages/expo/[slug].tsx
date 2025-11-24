@@ -16,7 +16,6 @@
 
 import { GetStaticProps, GetStaticPaths } from 'next';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 
 import Page from '@components/page';
 import SponsorSection from '@components/sponsor-section';
@@ -25,7 +24,6 @@ import Layout from '@components/layout';
 import { getAllSponsors } from '@lib/cms-api';
 import { Sponsor } from '@lib/types';
 import { META_DESCRIPTION } from '@lib/constants';
-import useAuth from '@lib/hooks/use-auth';
 import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 type Props = {
@@ -33,28 +31,13 @@ type Props = {
 };
 
 export default function SponsorPage({ sponsor: initialSponsor }: Props) {
-  const router = useRouter();
-  const { isLoggedIn, loading } = useAuth();
-  const [checkingSession, setCheckingSession] = useState(true);
   const [sponsor, setSponsor] = useState<Sponsor>(initialSponsor);
-
-  useEffect(() => {
-    // Wait for auth loading to complete
-    if (loading) return;
-
-    // If user is not logged in after loading completes, redirect to login
-    if (!isLoggedIn) {
-      router.replace('/login');
-    } else {
-      setCheckingSession(false);
-    }
-  }, [loading, isLoggedIn, router]);
 
   // Fetch latest sponsor data client-side to get founderEmail
   useEffect(() => {
     const fetchSponsor = async () => {
       const client = getSupabaseClient();
-      if (client && isLoggedIn && !loading) {
+      if (client) {
         try {
           const { data: company, error } = await client
             .from('companies')
@@ -94,40 +77,24 @@ export default function SponsorPage({ sponsor: initialSponsor }: Props) {
       }
     };
 
-    if (isLoggedIn && !loading) {
+    fetchSponsor();
+    
+    // Listen for sponsors/companies updates
+    const handleSponsorsUpdate = () => {
       fetchSponsor();
-      
-      // Listen for sponsors/companies updates
-      const handleSponsorsUpdate = () => {
-        fetchSponsor();
-      };
-      
-      window.addEventListener('sponsors-updated', handleSponsorsUpdate);
-      
-      return () => {
-        window.removeEventListener('sponsors-updated', handleSponsorsUpdate);
-      };
-    }
-  }, [isLoggedIn, loading, initialSponsor.slug]);
+    };
+    
+    window.addEventListener('sponsors-updated', handleSponsorsUpdate);
+    
+    return () => {
+      window.removeEventListener('sponsors-updated', handleSponsorsUpdate);
+    };
+  }, [initialSponsor.slug]);
 
   const meta = {
     title: 'Demo - Virtual Event Starter Kit',
     description: META_DESCRIPTION
   };
-
-  if (loading || checkingSession) {
-    return (
-      <Page meta={meta}>
-        <Layout>
-          <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
-        </Layout>
-      </Page>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return null;
-  }
 
   return (
     <Page meta={meta}>

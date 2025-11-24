@@ -55,12 +55,10 @@ export default function Layout({
 
   // Handler for Tune In / Watch Demo Day Live button
   const handleTuneIn = async () => {
-    if (!isLoggedIn) {
-      router.push('/login');
-    } else {
+    if (isLoggedIn) {
       await logUserEvent('watch_demo_day_live');
-      router.push('/live-stage');
     }
+    router.push('/live-stage');
   };
 
   // Handler for logout
@@ -82,7 +80,7 @@ export default function Layout({
               </Link>
             </div>
             <nav className={styles.headerNav}>
-              {isLoggedIn && NAVIGATION.filter(({ route }) => {
+              {NAVIGATION.filter(({ route }) => {
                 // Hide Speakers link if page is not visible
                 if (route === '/speakers' && !isSpeakersVisible) {
                   return false;
@@ -130,7 +128,7 @@ export default function Layout({
                 </button>
               )}
               <button className={styles.headerCtaBtn} onClick={handleTuneIn} style={{ padding: '8px 16px', background: '#FF7B00', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
-                {isLoggedIn ? 'Watch Demo Day Live' : 'Tune In'}
+                Watch Demo Day Live
               </button>
             </div>
           </header>

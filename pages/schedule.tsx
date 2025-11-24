@@ -1,11 +1,9 @@
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import Layout from '@components/layout';
 import cn from 'classnames';
 import { BRAND_COLOR } from '@lib/constants';
-import useAuth from '@lib/hooks/use-auth';
 import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 interface ScheduleItem {
@@ -15,22 +13,7 @@ interface ScheduleItem {
 }
 
 export default function Schedule() {
-  const router = useRouter();
-  const { isLoggedIn, loading } = useAuth();
-  const [checkingSession, setCheckingSession] = useState(true);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
-
-  useEffect(() => {
-    // Wait for auth loading to complete
-    if (loading) return;
-
-    // If user is not logged in after loading completes, redirect to login
-    if (!isLoggedIn) {
-      router.replace('/login');
-    } else {
-      setCheckingSession(false);
-    }
-  }, [loading, isLoggedIn, router]);
 
   // Fetch schedule items client-side to get latest updates
   useEffect(() => {
@@ -58,33 +41,19 @@ export default function Schedule() {
       }
     };
 
-    if (isLoggedIn && !loading) {
+    fetchScheduleItems();
+    
+    // Listen for schedule updates
+    const handleScheduleUpdate = () => {
       fetchScheduleItems();
-      
-      // Listen for schedule updates
-      const handleScheduleUpdate = () => {
-        fetchScheduleItems();
-      };
-      
-      window.addEventListener('schedule-updated', handleScheduleUpdate);
-      
-      return () => {
-        window.removeEventListener('schedule-updated', handleScheduleUpdate);
-      };
-    }
-  }, [isLoggedIn, loading]);
-
-  if (loading || checkingSession) {
-    return (
-      <Layout>
-        <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
-      </Layout>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return null;
-  }
+    };
+    
+    window.addEventListener('schedule-updated', handleScheduleUpdate);
+    
+    return () => {
+      window.removeEventListener('schedule-updated', handleScheduleUpdate);
+    };
+  }, []);
 
   return (
     <Layout>

@@ -16,7 +16,6 @@
 
 import { GetStaticProps } from 'next';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 
 import Page from '@components/page';
 import SpeakersGrid from '@components/speakers-grid';
@@ -26,7 +25,6 @@ import Image from 'next/image';
 import { getAllSpeakers } from '@lib/cms-api';
 import { Speaker } from '@lib/types';
 import { META_DESCRIPTION, BRAND_NAME } from '@lib/constants';
-import useAuth from '@lib/hooks/use-auth';
 import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 type Props = {
@@ -34,24 +32,9 @@ type Props = {
 };
 
 export default function Speakers({ speakers: initialSpeakers }: Props) {
-  const router = useRouter();
-  const { isLoggedIn, loading } = useAuth();
-  const [checkingSession, setCheckingSession] = useState(true);
   const [speakers, setSpeakers] = useState(initialSpeakers);
   const [panelistsImageUrl, setPanelistsImageUrl] = useState('https://xptrglblnutotevffhpd.supabase.co/storage/v1/object/public/pitchdeck//Panelists.jpeg');
   const [isPageVisible, setIsPageVisible] = useState(true);
-
-  useEffect(() => {
-    // Wait for auth loading to complete
-    if (loading) return;
-
-    // If user is not logged in after loading completes, redirect to login
-    if (!isLoggedIn) {
-      router.replace('/login');
-    } else {
-      setCheckingSession(false);
-    }
-  }, [loading, isLoggedIn, router]);
 
   // Fetch speakers client-side to get latest updates
   useEffect(() => {
@@ -87,21 +70,19 @@ export default function Speakers({ speakers: initialSpeakers }: Props) {
       }
     };
 
-    if (isLoggedIn && !loading) {
+    fetchSpeakers();
+    
+    // Listen for speakers updates
+    const handleSpeakersUpdate = () => {
       fetchSpeakers();
-      
-      // Listen for speakers updates
-      const handleSpeakersUpdate = () => {
-        fetchSpeakers();
-      };
-      
-      window.addEventListener('speakers-updated', handleSpeakersUpdate);
-      
-      return () => {
-        window.removeEventListener('speakers-updated', handleSpeakersUpdate);
-      };
-    }
-  }, [isLoggedIn, loading]);
+    };
+    
+    window.addEventListener('speakers-updated', handleSpeakersUpdate);
+    
+    return () => {
+      window.removeEventListener('speakers-updated', handleSpeakersUpdate);
+    };
+  }, []);
 
   // Fetch panelists image URL and page visibility
   useEffect(() => {
@@ -127,40 +108,24 @@ export default function Speakers({ speakers: initialSpeakers }: Props) {
       }
     };
 
-    if (isLoggedIn && !loading) {
+    fetchSpeakersSettings();
+    
+    // Listen for speakers settings updates
+    const handleSpeakersSettingsUpdate = () => {
       fetchSpeakersSettings();
-      
-      // Listen for speakers settings updates
-      const handleSpeakersSettingsUpdate = () => {
-        fetchSpeakersSettings();
-      };
-      
-      window.addEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
-      
-      return () => {
-        window.removeEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
-      };
-    }
-  }, [isLoggedIn, loading]);
+    };
+    
+    window.addEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
+    
+    return () => {
+      window.removeEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
+    };
+  }, []);
 
   const meta = {
     title: `Speakers - ${BRAND_NAME} Panelists`,
     description: META_DESCRIPTION
   };
-
-  if (loading || checkingSession) {
-    return (
-      <Page meta={meta}>
-        <Layout>
-          <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
-        </Layout>
-      </Page>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return null;
-  }
 
   if (!isPageVisible) {
     return (

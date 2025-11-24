@@ -47,7 +47,7 @@ function ModalDialog(props: Parameters<typeof useOverlay>[0] & Parameters<typeof
     <div className={styles['nav-overlay']}>
       <FocusScope contain restoreFocus autoFocus>
         <nav className={styles.nav} {...overlayProps} {...dialogProps} {...modalProps} ref={ref}>
-          {isLoggedIn && NAVIGATION.filter(({ route }) => {
+          {NAVIGATION.filter(({ route }) => {
             // Hide Speakers link if page is not visible
             if (route === '/speakers' && !isSpeakersVisible) {
               return false;

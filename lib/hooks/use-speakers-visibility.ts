@@ -4,10 +4,11 @@ import useAuth from './use-auth';
 
 export function useSpeakersVisibility(): boolean {
   const [isVisible, setIsVisible] = useState(true);
-  const { isLoggedIn, loading } = useAuth();
+  const { loading } = useAuth();
 
   useEffect(() => {
-    if (!isLoggedIn || loading) {
+    // Wait for auth to finish initializing, but check visibility regardless of login status
+    if (loading) {
       return;
     }
 
@@ -42,7 +43,7 @@ export function useSpeakersVisibility(): boolean {
     return () => {
       window.removeEventListener('speakers-settings-updated', handleSpeakersSettingsUpdate);
     };
-  }, [isLoggedIn, loading]);
+  }, [loading]);
 
   return isVisible;
 }

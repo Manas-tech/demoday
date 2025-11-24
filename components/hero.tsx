@@ -38,12 +38,10 @@ export default function Hero() {
   };
 
   const handleCtaClick = async () => {
-    if (!isLoggedIn) {
-      router.push('/login');
-    } else {
+    if (isLoggedIn) {
       await logUserEvent('watch_demo_day_live');
-      window.location.href = '/live-stage';
     }
+    window.location.href = '/live-stage';
   };
 
   return (
@@ -61,7 +59,7 @@ export default function Hero() {
           world of enterprise.
         </p>
         <button className={styles.heroCtaBtn} onClick={handleCtaClick} style={{ padding: '12px 24px', background: '#FF7B00', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '16px' }}>
-          {isLoggedIn ? 'Watch Demo Day Live' : 'Tune In'}
+          Watch Demo Day Live
         </button>
       </div>
       <div className={styles.heroRight}>

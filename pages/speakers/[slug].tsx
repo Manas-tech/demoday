@@ -15,8 +15,6 @@
  */
 
 import { GetStaticProps, GetStaticPaths } from 'next';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 
 import Page from '@components/page';
 import SpeakerSection from '@components/speaker-section';
@@ -25,48 +23,16 @@ import Layout from '@components/layout';
 import { getAllSpeakers } from '@lib/cms-api';
 import { Speaker } from '@lib/types';
 import { META_DESCRIPTION } from '@lib/constants';
-import useAuth from '@lib/hooks/use-auth';
-import { getSupabaseClient } from '@lib/db-providers/supabase/client';
 
 type Props = {
   speaker: Speaker;
 };
 
 export default function SpeakerPage({ speaker }: Props) {
-  const router = useRouter();
-  const { isLoggedIn, loading } = useAuth();
-  const [checkingSession, setCheckingSession] = useState(true);
-
-  useEffect(() => {
-    // Wait for auth loading to complete
-    if (loading) return;
-
-    // If user is not logged in after loading completes, redirect to login
-    if (!isLoggedIn) {
-      router.replace('/login');
-    } else {
-      setCheckingSession(false);
-    }
-  }, [loading, isLoggedIn, router]);
-
   const meta = {
     title: 'Demo - Virtual Event Starter Kit',
     description: META_DESCRIPTION
   };
-
-  if (loading || checkingSession) {
-    return (
-      <Page meta={meta}>
-        <Layout>
-          <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
-        </Layout>
-      </Page>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return null;
-  }
 
   return (
     <Page meta={meta}>
