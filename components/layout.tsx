@@ -85,6 +85,10 @@ export default function Layout({
                 if (route === '/speakers' && !isSpeakersVisible) {
                   return false;
                 }
+                // Hide Marl Companies tab for now
+                if (route === '/expo') {
+                  return false;
+                }
                 return true;
               }).map(({ name, route }) => (
                 <a

@@ -52,6 +52,10 @@ function ModalDialog(props: Parameters<typeof useOverlay>[0] & Parameters<typeof
             if (route === '/speakers' && !isSpeakersVisible) {
               return false;
             }
+            // Hide Marl Companies tab for now
+            if (route === '/expo') {
+              return false;
+            }
             return true;
           }).map(({ name, route }) => (
             <Link
